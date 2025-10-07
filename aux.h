@@ -11,3 +11,5 @@ int TrocearCadena(char * cadena, char * trozos[]);
 void Addhistoric(char cadena[],tList *l);
 
 int ProcesarEntrada(char *trozos[],int ntoken,Listas L);
+
+void CrearCharModos(char *modos,int filemodo);

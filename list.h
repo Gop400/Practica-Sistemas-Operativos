@@ -20,7 +20,7 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 
-
+#define Max_OpenFiles 20
 #define LNULL NULL
 
 struct structHist {

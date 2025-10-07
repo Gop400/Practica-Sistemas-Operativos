@@ -2,7 +2,7 @@
 #include "aux.h"
 #include "p0.h"
 
-struct cmd cmds[]={{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
+struct cmd cmds[]={{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -40,4 +40,34 @@ void Addhistoric(char cadena[],tList *l) {
     }
     InsertItem(l,d,NULL);
     return;
+}
+
+void CrearCharModos(char *modos,int filemodo){
+    if ((filemodo & (O_RDONLY | O_WRONLY | O_RDWR)) == O_RDONLY) {
+        strcat(modos, "O_RDONLY,");
+    }
+
+    if (filemodo & O_WRONLY) {
+        strcat(modos, "O_WRONLY,");
+    }
+    if (filemodo & O_RDWR) {
+        strcat(modos, "O_RDWR,");
+    }
+    if (filemodo & O_CREAT) {
+        strcat(modos, "O_CREAT,");
+    }
+    if (filemodo & O_EXCL) {
+        strcat(modos, "O_EXCL,");
+    }
+    if (filemodo & O_APPEND) {
+        strcat(modos, "O_APPEND,");
+    }
+    if (filemodo & O_TRUNC) {
+        strcat(modos, "O_TRUNC,");
+    }
+    size_t len = strlen(modos);
+    if(len > 0 && modos[len-1] == ',') {
+        modos[len-1] = '\0';
+    }
+    
 }

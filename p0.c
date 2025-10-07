@@ -280,3 +280,67 @@ int historic(char *trozos[],int ntrozos,Listas L) {
     }
     return 1;
 }
+
+void AnadirAFicherosAbiertos(tList *F,int fd, int modo, const char *nombre) {
+    if (sizeList(*F)>= Max_OpenFiles) {
+        printf("Tabla de ficheros abiertos llena.\n");
+        return;
+    }
+    tItemF file=(tItem)malloc(sizeof(struct structOpenFile));
+    file->df=fd;
+    file->modos=modo;
+    file->name=strdup(nombre);
+    InsertItem(F,file,NULL);
+    return;
+}
+
+void PrintOpenFiles(tList F) {
+    char modos[64]; // buffer suficiente para los flags
+    if (isEmptyList(F)) {
+        printf("Lista vacía\n");
+        return;
+    }
+    tPos p = first(F);
+    tItemF file;
+    while (p != LNULL) {
+        modos[0] = '\0';               // vaciar el buffer al inicio de cada iteración
+        file = (tItemF)getItem(F, p);   // obtener el archivo actual
+        CrearCharModos(modos, file->modos); // convertir los modos a cadena
+        printf("Descriptor: %d  Modo: %s  Nombre: %s\n", file->df, modos, file->name);
+        p = next(F, p);                // pasar al siguiente elemento
+    }
+}
+
+int Cmd_open (char * trozos[],int ntrozos,Listas L){
+    int i,df, mode=0;
+    
+    if (trozos[0]==NULL && ntrozos==1) { /*no hay parametro*/
+        PrintOpenFiles(L->OpenFilesList);
+        return 0;
+    }
+    for (i=1; trozos[i]!=NULL; i++){
+        if (!strcmp(trozos[i],"cr")) mode|=O_CREAT;
+        else if (!strcmp(trozos[i],"ex")) mode|=O_EXCL;
+        else if (!strcmp(trozos[i],"ro")) mode|=O_RDONLY; 
+        else if (!strcmp(trozos[i],"wo")) mode|=O_WRONLY;
+        else if (!strcmp(trozos[i],"rw")) mode|=O_RDWR;
+        else if (!strcmp(trozos[i],"ap")) mode|=O_APPEND;
+        else if (!strcmp(trozos[i],"tr")) mode|=O_TRUNC; 
+        else break;
+        
+    }
+    if (!(mode & (O_RDONLY | O_WRONLY | O_RDWR))) {
+        mode |= O_RDONLY;
+    }
+      
+    if ((df=open(trozos[0],mode,0777))==-1){
+            perror ("Imposible abrir fichero");
+            return 1;
+    }
+    else{
+        AnadirAFicherosAbiertos(&L->OpenFilesList,df,mode,trozos[0]);
+        printf ("Anadida entrada a la tabla ficheros abiertos:fd=%d,nombre='%s'\n",df,trozos[0]);
+        return 0;
+    }
+    return 1;
+}
