@@ -1,5 +1,6 @@
 #include "list.h"
 #include "p0.h"
+#include "p1.h"
 struct cmd {
     char *name;
     int (*func)(char *trozos[],int ntoken,Listas L);

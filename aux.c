@@ -1,8 +1,9 @@
 
 #include "aux.h"
 #include "p0.h"
+#include "p1.h"
 
-struct cmd cmds[]={{"dup",Cmd_dup},{"listopen",listopen},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
+struct cmd cmds[]={{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
