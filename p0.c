@@ -344,3 +344,36 @@ int Cmd_open (char * trozos[],int ntrozos,Listas L){
     }
     return 1;
 }
+
+
+int Cmd_close (char *trozos[],int ntrozos,Listas L){ 
+    int df;
+    if (ntrozos==1){
+        perror("Introduzca un descriptor de fichero a cerrar");
+        return 1;
+    }
+    if((df=atoi(trozos[0]))<0 && ntrozos==2){
+        perror("Descriptor de fichero invalido");
+        return 1;
+    }
+    if(ntrozos>=2){
+       perror("Demasiados argumentos");
+       return 1; 
+    }
+    tPos p=first(L->OpenFilesList);
+        tItemF file;
+        while(p!=LNULL){
+            file=(tItemF)getItem(L->OpenFilesList,p);
+            if(file->df==df){
+                if(close(df)==-1){
+                    perror("Error al cerrar el fichero");
+                    return 1;
+                }
+                RemoveElement(&L->OpenFilesList,p);
+                printf("Descriptor %d cerrado y eliminado de la lista\n",df);
+                return 0;
+            }
+            p=next(L->OpenFilesList,p);
+        }
+    return 1;
+}

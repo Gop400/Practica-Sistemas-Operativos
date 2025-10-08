@@ -11,5 +11,6 @@ int date(char *trozos[],int ntrozos,Listas L);
 int help(char *trozos[], int ntrozos, Listas L);
 int historic(char *trozos[],int ntrozos,Listas L);
 int Cmd_open (char * trozos[],int ntrozos,Listas L);
+int Cmd_close (char *trozos[],int ntrozos,Listas L);
 
 
