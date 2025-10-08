@@ -281,35 +281,6 @@ int historic(char *trozos[],int ntrozos,Listas L) {
     return 1;
 }
 
-void AnadirAFicherosAbiertos(tList *F,int fd, int modo, const char *nombre) {
-    if (sizeList(*F)>= Max_OpenFiles) {
-        printf("Tabla de ficheros abiertos llena.\n");
-        return;
-    }
-    tItemF file=(tItem)malloc(sizeof(struct structOpenFile));
-    file->df=fd;
-    file->modos=modo;
-    file->name=strdup(nombre);
-    InsertItem(F,file,NULL);
-    return;
-}
-
-void PrintOpenFiles(tList F) {
-    char modos[64]; // buffer suficiente para los flags
-    if (isEmptyList(F)) {
-        printf("Lista vacía\n");
-        return;
-    }
-    tPos p = first(F);
-    tItemF file;
-    while (p != LNULL) {
-        modos[0] = '\0';               // vaciar el buffer al inicio de cada iteración
-        file = (tItemF)getItem(F, p);   // obtener el archivo actual
-        CrearCharModos(modos, file->modos); // convertir los modos a cadena
-        printf("Descriptor: %d  Modo: %s  Nombre: %s\n", file->df, modos, file->name);
-        p = next(F, p);                // pasar al siguiente elemento
-    }
-}
 
 int Cmd_open (char * trozos[],int ntrozos,Listas L){
     int i,df, mode=0;
@@ -356,7 +327,7 @@ int Cmd_close (char *trozos[],int ntrozos,Listas L){
         perror("Descriptor de fichero invalido");
         return 1;
     }
-    if(ntrozos>=2){
+    if(ntrozos>2){
        perror("Demasiados argumentos");
        return 1; 
     }
@@ -374,6 +345,40 @@ int Cmd_close (char *trozos[],int ntrozos,Listas L){
                 return 0;
             }
             p=next(L->OpenFilesList,p);
-        }
+        } 
     return 1;
+}
+int listopen(char *trozos[],int ntrozos,Listas L){
+    if(ntrozos==1){
+        PrintOpenFiles(L->OpenFilesList);
+        return 0;
+    }
+    perror("Numero de Argumentos invalidos");
+    return 1;
+}
+
+int Cmd_dup (char *trozos[],int ntrozos,Listas L)
+{ 
+    int df, duplicado;
+    char aux[64],*p;
+    
+    if (trozos[0]==NULL || (df=atoi(trozos[0]))<0) { /*no hay parametro*/
+        PrintOpenFiles(L->OpenFilesList);   /*o el descriptor es menor que 0*/
+        return 0;
+    }
+
+    p=NombreDescriptor(df,L);
+    if(strcmp(p,"Not Found")==0){
+        perror("Descriptor no encontrado en la lista de ficheros abiertos");
+        return 1;
+    }
+     // Duplicar el descriptor con dup()
+    if ((duplicado = dup(df)) == -1) {
+        perror("Error al duplicar descriptor");
+        return 1;
+    }
+    sprintf (aux,"dup %d (%s)",df, p);
+    AnadirAFicherosAbiertos(&L->OpenFilesList,duplicado,fcntl(duplicado,F_GETFL),aux);
+    printf ("Anadida entrada a la tabla ficheros abiertos:fd=%d,nombre='%s'\n",duplicado,aux);
+    return 0;
 }

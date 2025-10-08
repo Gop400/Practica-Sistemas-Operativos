@@ -32,6 +32,7 @@ struct structOpenFile {
     char *name; 
     int df;
     int modos;
+    off_t offset;
 };
 typedef void* tItem;
 typedef struct structHist* tItemH;

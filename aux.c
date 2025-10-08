@@ -2,7 +2,7 @@
 #include "aux.h"
 #include "p0.h"
 
-struct cmd cmds[]={{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
+struct cmd cmds[]={{"dup",Cmd_dup},{"listopen",listopen},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -70,4 +70,54 @@ void CrearCharModos(char *modos,int filemodo){
         modos[len-1] = '\0';
     }
     
+}
+void PrintDefaultOpen(){
+    printf("Descriptor: 0 ,offset :( )-> entrada estandar O_RDWR\n");
+    printf("Descriptor: 1 ,offset :( )-> salida estandar O_RDWR\n");
+    printf("Descriptor: 2 ,offset :( )-> error estandar O_RDWR\n");
+}
+
+char *NombreDescriptor(int df,Listas L){
+    tPos p=first(L->OpenFilesList);
+    tItemF file;
+    while(p!=LNULL){
+        file=(tItemF)getItem(L->OpenFilesList,p);
+        if(file->df==df){
+            return file->name;
+        }
+        p=next(L->OpenFilesList,p);
+    }
+    return "Not Found";
+}
+
+void AnadirAFicherosAbiertos(tList *F,int fd, int modo, const char *nombre) {
+    if (sizeList(*F)>= Max_OpenFiles) {
+        printf("Tabla de ficheros abiertos llena.\n");
+        return;
+    }
+    tItemF file=(tItem)malloc(sizeof(struct structOpenFile));
+    file->df=fd;
+    file->modos=modo;
+    file->name=strdup(nombre);
+    file->offset=lseek(fd,0,SEEK_CUR);
+    InsertItem(F,file,NULL);
+    return;
+}
+
+void PrintOpenFiles(tList F) {
+    char modos[64]; // buffer suficiente para los flags
+    if (isEmptyList(F)) {
+        PrintDefaultOpen();
+        return;
+    }
+    PrintDefaultOpen();
+    tPos p = first(F);
+    tItemF file;
+    while (p != LNULL) {
+        modos[0] = '\0';               // vaciar el buffer al inicio de cada iteración
+        file = (tItemF)getItem(F, p);   // obtener el archivo actual
+        CrearCharModos(modos, file->modos); // convertir los modos a cadena
+        printf("Descriptor: %d ,offset :(%ld)-> %s %s\n", file->df,file->offset,file->name,modos);
+        p = next(F, p);                // pasar al siguiente elemento
+    }
 }

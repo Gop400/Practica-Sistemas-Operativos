@@ -8,7 +8,7 @@ CFLAGS= -Wall -g
 
 # Regla para limpiar los archivos generados
 shell: main.c
-	gcc $(CFLAGS) -o $(EXECUTABLE)  list.c main.c p0.c aux.c
+	gcc $(CFLAGS) -o $(EXECUTABLE)  p1.c list.c main.c p0.c aux.c
 
 clean:
 
