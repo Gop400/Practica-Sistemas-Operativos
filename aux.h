@@ -18,3 +18,4 @@ void PrintDefaultOpen();
 char *NombreDescriptor(int df,Listas L);
 void AnadirAFicherosAbiertos(tList *F,int fd, int modo, const char *nombre);
 void PrintOpenFiles(tList F);
+int aux_remove_rec(const char *path);

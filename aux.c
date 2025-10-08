@@ -3,7 +3,7 @@
 #include "p0.h"
 #include "p1.h"
 
-struct cmd cmds[]={{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
+struct cmd cmds[]={{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -121,4 +121,60 @@ void PrintOpenFiles(tList F) {
         printf("Descriptor: %d ,offset :(%ld)-> %s %s\n", file->df,file->offset,file->name,modos);
         p = next(F, p);                // pasar al siguiente elemento
     }
+}
+
+
+int aux_remove_rec(const char *path) {
+    struct stat info;
+
+    if (stat(path, &info) == -1) {
+        fprintf(stderr, "No se ha encontrado el archivo o directorio %s: %s\n", path, strerror(errno));
+        return 1;
+    }
+
+    if (S_ISDIR(info.st_mode)) {
+        // Es un directorio: abrimos su contenido
+        DIR *dir = opendir(path);
+        if (!dir) {
+            fprintf(stderr, "Error al abrir directorio %s: %s\n", path, strerror(errno));
+            return 1;
+        }
+
+        struct dirent *entry;
+        int ret = 0;
+
+        while ((entry = readdir(dir)) != NULL) {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0){
+                continue;
+            }//IGNORA LAS ENTRADAS . Y .. QUE EL SISTEMDA DE ARCHIVOS INCLUYE SIEMPRE
+
+
+            char sub_path[1024];
+            snprintf(sub_path, sizeof(sub_path), "%s/%s", path, entry->d_name);//Crea una cadena de texto pero con un límite de tamaño, para evitar overflow y queda almacenada en sub_path
+            // Llamada recursiva
+            if (aux_remove_rec(sub_path) != 0)//si da error en la llamada recursiva devuelve 1
+                ret = 1;
+        }
+        closedir(dir);
+
+        // Borramos el directorio vacío ahora
+        if (rmdir(path) == -1) {
+            fprintf(stderr, "Error al eliminar directorio %s: %s\n", path, strerror(errno));
+            ret = 1;
+        } else {
+            printf("Directorio eliminado: %s\n", path);
+        }
+
+        return ret;
+    } else if (S_ISREG(info.st_mode)) {
+        // Es un archivo normal
+        if (unlink(path) == -1) {
+            fprintf(stderr, "Error al eliminar fichero %s: %s\n", path, strerror(errno));
+            return 1;
+        } else {
+            printf("Fichero eliminado: %s\n", path);
+            return 0;
+        }
+    }
+    return 1;
 }
