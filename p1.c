@@ -83,3 +83,66 @@ int Cmd_delrec(char *trozos[], int ntrozos, Listas L) {
     }
     return errorflag;
 }
+
+
+int Cmd_writestr(char *trozos[], int ntrozos, Listas L) {
+    if (ntrozos < 3) {
+        printf("Uso: writestr <df> <texto>\n");
+        return 1;
+    }
+
+    int df = atoi(trozos[0]); // descriptor del fichero
+
+    // --- 1️⃣ Unir todos los argumentos desde args[1] en una sola cadena ---
+    size_t len_total = 0;
+    for (int i = 1; i < ntrozos-1; i++){
+        len_total += strlen(trozos[i]); 
+    } 
+    printf("len_total: %zu\n",len_total);
+    char *str = malloc(len_total+1 + (ntrozos -2)); //1 para \0 y otro para espacios
+    if (!str) {
+        perror("malloc");
+        return 1;
+    }
+    str[0] = '\0';
+
+    for (int i = 1; i < ntrozos-1; i++) {
+        strcat(str, trozos[i]);
+        if (i < ntrozos - 2) strcat(str, " "); // añadir espacio entre palabras
+    }
+
+    // --- 2️⃣ Buscar el fichero por su descriptor ---
+    tPos pos = first(L->OpenFilesList);
+    tItemF file = NULL;
+
+    while (pos != NULL) {
+        tItemF current = (tItemF)getItem(L->OpenFilesList, pos);
+        if (current->df == df) {
+            file = current;
+            break;
+        }
+        pos = next(L->OpenFilesList, pos);
+    }
+
+    if (file == NULL) {
+        printf("Error: descriptor de fichero %d no encontrado.\n", df);
+        free(str);
+        return 1;
+    }
+
+    // --- 3️⃣ Escribir el texto ---
+    ssize_t bytes = write(file->df, str, strlen(str));
+    if (bytes < 0) {
+        perror("Error al escribir en el fichero");
+        free(str);
+        return 1;
+    }
+    printf("%zd bytes\n",bytes);
+
+    // --- 4️⃣ Actualizar offset y mostrar mensaje ---
+    file->offset += bytes;
+    printf("Escritos %zd bytes en el fichero '%s' (df=%d)\n", bytes, file->name, file->df);
+    free(str);
+    return 0;
+
+}
