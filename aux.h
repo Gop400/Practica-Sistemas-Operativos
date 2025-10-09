@@ -19,3 +19,6 @@ char *NombreDescriptor(int df,Listas L);
 void AnadirAFicherosAbiertos(tList *F,int fd, int modo, const char *nombre);
 void PrintOpenFiles(tList F);
 int aux_remove_rec(const char *path);
+char * ConvierteModo (mode_t m, char *permisos);
+
+char LetraTF (mode_t m);

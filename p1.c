@@ -146,3 +146,78 @@ int Cmd_writestr(char *trozos[], int ntrozos, Listas L) {
     return 0;
 
 }
+
+
+
+int Cmd_lseek(char *trozos[], int ntrozos, Listas L) {
+    if (ntrozos < 4) {
+        printf("Uso: lseek <df> <offset> <SEEK_SET|SEEK_CUR|SEEK_END>\n");
+        return 1;
+    }
+
+    int df = atoi(trozos[0]);
+    off_t off = atoll(trozos[1]);
+    int ref;
+
+    // --- 1️⃣ Interpretar el argumento de referencia ---
+    if (strcmp(trozos[2], "SEEK_SET") == 0)
+        ref = SEEK_SET;
+    else if (strcmp(trozos[2], "SEEK_CUR") == 0)
+        ref = SEEK_CUR;
+    else if (strcmp(trozos[2], "SEEK_END") == 0)
+        ref = SEEK_END;
+    else {
+        fprintf(stderr, "Referencia no válida: %s (use SEEK_SET, SEEK_CUR o SEEK_END)\n", trozos[2]);
+        return 1;
+    }
+
+    // --- 2️⃣ Buscar el fichero en la lista ---
+    if (isEmptyList(L->OpenFilesList)) {
+        fprintf(stderr, "Error: lista de ficheros no inicializada.\n");
+        return 1;
+    }
+
+    tPos pos = first(L->OpenFilesList);
+    tItemF file = NULL;
+
+    while (pos != NULL) {
+        tItemF actual = (tItemF)getItem(L->OpenFilesList, pos);
+        if (actual->df == df) {
+            file = actual;
+            break;
+        }
+        pos = next(L->OpenFilesList, pos);
+    }
+
+    if (file == NULL) {
+        fprintf(stderr, "Error: descriptor de fichero %d no encontrado.\n", df);
+        return 1;
+    }
+
+    // --- 3️⃣ Obtener información del fichero ---
+    struct stat st;
+    if (fstat(file->df, &st) == -1) {
+        perror("Error al obtener información del fichero");
+        return 1;
+    }
+
+    // --- 4️⃣ Mover el offset ---
+    off_t nuevo_off = lseek(file->df, off, ref);
+    if (nuevo_off == (off_t)-1) {
+        perror("Error al cambiar el offset con lseek");
+        return 1;
+    }
+
+    // --- 5️⃣ Actualizar offset en la estructura ---
+    file->offset = nuevo_off;
+
+    // --- 6️⃣ Mostrar información detallada con tus funciones auxiliares ---
+    char permisos[12];
+    ConvierteModo(st.st_mode, permisos); // Usa tu función auxiliar
+
+    printf("Descriptor: %d, nombre: '%s'\n", file->df, file->name);
+    printf("Tipo: %c, Permisos: %s\n", LetraTF(st.st_mode), permisos);
+    printf("Nuevo offset: %lld bytes\n", (long long)file->offset);
+
+    return 0;
+}
