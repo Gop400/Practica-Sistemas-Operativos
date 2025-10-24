@@ -3,7 +3,7 @@
 #include "p0.h"
 #include "p1.h"
 
-struct cmd cmds[]={{"lseek",Cmd_lseek},{"writestr",Cmd_writestr},{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
+struct cmd cmds[]={{"dir",cmd_dir},{"setdirparams",setdirparams},{"lseek",Cmd_lseek},{"writestr",Cmd_writestr},{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -72,11 +72,7 @@ void CrearCharModos(char *modos,int filemodo){
     }
     
 }
-void PrintDefaultOpen(){
-    printf("Descriptor: 0 ,offset :( )-> entrada estandar O_RDWR\n");
-    printf("Descriptor: 1 ,offset :( )-> salida estandar O_RDWR\n");
-    printf("Descriptor: 2 ,offset :( )-> error estandar O_RDWR\n");
-}
+
 
 char *NombreDescriptor(int df,Listas L){
     tPos p=first(L->OpenFilesList);
@@ -108,17 +104,17 @@ void AnadirAFicherosAbiertos(tList *F,int fd, int modo, const char *nombre) {
 void PrintOpenFiles(tList F) {
     char modos[64]; // buffer suficiente para los flags
     if (isEmptyList(F)) {
-        PrintDefaultOpen();
+        fprintf(stderr,"No hay ficheros abiertos:%su\n",strerror(errno));
         return;
     }
-    PrintDefaultOpen();
     tPos p = first(F);
     tItemF file;
     while (p != LNULL) {
         modos[0] = '\0';               // vaciar el buffer al inicio de cada iteración
         file = (tItemF)getItem(F, p);   // obtener el archivo actual
         CrearCharModos(modos, file->modos); // convertir los modos a cadena
-        printf("Descriptor: %d ,offset :(%ld)-> %s %s\n", file->df,file->offset,file->name,modos);
+        printf("Descriptor: %d ,offset :(%s)-> %s %s\n",file->df,(file->offset == -1) ? "" : ({ static char buf[32]; sprintf(buf, "%ld", file->offset); buf; }),file->name,modos);
+
         p = next(F, p);                // pasar al siguiente elemento
     }
 }
@@ -211,4 +207,48 @@ char LetraTF (mode_t m)
         case S_IFIFO: return 'p'; /*pipe*/
         default: return '?'; /*desconocido, no deberia aparecer*/
      }
+}
+void initOpenList(Listas L){
+    AnadirAFicherosAbiertos(&L->OpenFilesList,0,O_RDWR,"entrada estandar");
+    AnadirAFicherosAbiertos(&L->OpenFilesList,1,O_RDWR,"salida estandar");
+    AnadirAFicherosAbiertos(&L->OpenFilesList,2,O_RDWR,"error estandar");
+}
+
+
+char* GetDirParamsString(DirFormat f, LinkOption l, HiddenOption h, RecursionOption r) {
+    const char *format, *link, *hid, *rec;
+    
+
+    // Convertir cada enum a texto (en la misma función)
+    switch (f) {
+        case SHORT_FORMAT: format = "corto"; break;
+        case LONG_FORMAT:  format = "largo"; break;
+        default: format = "unknown";
+    }
+
+    switch (l) {
+        case NO_LINK: link = "sin link"; break;
+        case LINK:    link = "con link"; break;
+        default: link = "unknown";
+    }
+
+    switch (h) {
+        case NO_HID: hid = "con archivos ocultos"; break;
+        case HID:    hid = "sin archivos ocultos"; break;
+        default: hid = "unknown";
+    }
+
+    switch (r) {
+        case NO_REC: rec = "no recursivo"; break;
+        case RECA:   rec = "recursivo(despues)"; break;
+        case RECB:   rec = "recursivo(antes)"; break;
+        default: rec = "unknown";
+    }
+
+    // Reservar memoria para la cadena final
+    char *result = malloc(128);
+    if (!result) return NULL;
+
+    snprintf(result, 128, "Listado %s %s %s %s", format, link, hid, rec);
+    return result; // llamador debe hacer free(result)
 }

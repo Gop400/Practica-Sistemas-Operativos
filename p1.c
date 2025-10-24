@@ -1,18 +1,23 @@
 #include "p1.h"
 #include "aux.h"
 
-int Cmd_create(char *trozos[],int ntrozos, Listas L) {
-    FILE *f ;
+DirFormat g_format = SHORT_FORMAT;
+LinkOption g_link = NO_LINK;
+HiddenOption g_hidden = NO_HID;
+RecursionOption g_recursion = NO_REC;
 
+int Cmd_create(char *trozos[],int ntrozos, Listas L) {
+    int fd;
     if (ntrozos ==3) {
         if (strcmp(trozos[0],"-f")==0) {
             if(trozos[1]!=NULL) {
-                if ((f=fopen(trozos[1], "w"))==NULL) {
+                fd = open(trozos[1], O_CREAT | O_WRONLY | O_TRUNC, 0666);
+                if (fd == -1) {
                     perror("Error al crear el fichero");
                     return 1;
                 }
                 printf("Fichero '%s' creado con exito\n", trozos[1]);
-                AnadirAFicherosAbiertos(&L->OpenFilesList,fileno(f),O_RDWR,trozos[1]);
+                AnadirAFicherosAbiertos(&L->OpenFilesList,fd,O_RDWR,trozos[1]);
                 return 0;
             }
             perror("Nombre de fichero invalido");
@@ -99,7 +104,6 @@ int Cmd_writestr(char *trozos[], int ntrozos, Listas L) {
     for (int i = 1; i < ntrozos-1; i++){
         len_total += strlen(trozos[i]); 
     } 
-    printf("len_total: %zu\n",len_total);
     char *str = malloc(len_total+1 + (ntrozos -2)); //1 para \0 y otro para espacios
     if (!str) {
         perror("malloc");
@@ -222,3 +226,262 @@ int Cmd_lseek(char *trozos[], int ntrozos, Listas L) {
 
     return 0;
 }
+
+
+
+int setdirparams(char *trozos[], int ntrozos, Listas L) {
+    if (ntrozos <2) {
+        char *result = GetDirParamsString(g_format, g_link, g_hidden, g_recursion);
+        printf("%s\n", result);
+        free(result);
+        return 0;
+    }
+
+    for (int i = 0; i < ntrozos-1; i++) {
+        if (strcmp(trozos[i], "long") == 0) {
+            g_format = LONG_FORMAT;
+            continue;
+        }if (strcmp(trozos[i], "short") == 0) {
+            g_format = SHORT_FORMAT;
+            continue;
+        }if (strcmp(trozos[i], "link") == 0) {
+            g_link = LINK;
+            continue;
+        } if (strcmp(trozos[i], "nolink") == 0) {
+            g_link = NO_LINK;
+            continue;
+        } if (strcmp(trozos[i], "hid") == 0) {
+            g_hidden = HID;
+            continue;
+        } if (strcmp(trozos[i], "nohid") == 0) {
+            g_hidden = NO_HID;
+            continue;
+        } if (strcmp(trozos[i], "reca") == 0) {
+            g_recursion = RECA;
+            continue;
+        } if (strcmp(trozos[i], "recb") == 0) {
+            g_recursion = RECB;
+            continue;
+        } if (strcmp(trozos[i], "norec") == 0) {
+            g_recursion = NO_REC;
+            continue;
+        } else {
+            fprintf(stderr,"Parámetro desconocido: %s %s\n", trozos[i],strerror(errno));
+        }
+    }
+    printf("Parámetros actualizados correctamente.\n");
+    return 0;
+}
+
+
+
+
+
+
+static void print_file_info(const char *dirpath, const char *filename) {
+    // construye la ruta completa del archivo uniendo directorio y nombre de archivo
+    char fullpath[4096], linkdest[4096], permisos[12];
+    snprintf(fullpath, sizeof(fullpath), "%s/%s", dirpath, filename);
+
+    struct stat s;
+    // obtiene información del archivo; si falla, muestra error y sale
+    if (lstat(fullpath, &s) == -1) {
+        fprintf(stderr,"%s imposible de acceder :%s\n",fullpath,strerror(errno));
+        return;
+    }
+    // si no se muestran ocultos y el archivo empieza con '.', salta sin imprimir
+    if (g_hidden == NO_HID && filename[0] == '.') return;
+
+    // si el formato no es largo, simplemente muestra el nombre y tamaño
+    if (g_format == SHORT_FORMAT) {
+        printf("%s\t%ld bytes\n", filename, (long)s.st_size);
+    } else {
+        // usa función auxiliar para convertir modo en texto de permisos
+        ConvierteModo(s.st_mode, permisos);
+
+        // obtiene usuario y grupo propietario
+        struct passwd *pw = getpwuid(s.st_uid);
+        struct group *gr = getgrgid(s.st_gid);
+
+        // formatea la fecha de última modificación
+        char fecha[32];
+        strftime(fecha, sizeof(fecha), "%Y-%m-%d %H:%M", localtime(&s.st_mtime));
+
+        // imprime permisos, enlaces, propietario, grupo, tamaño, fecha y nombre
+        printf("%s %2lu %s %s %8ld %s %s",
+            permisos,
+            (unsigned long)s.st_nlink,
+            pw ? pw->pw_name : "?",
+            gr ? gr->gr_name : "?",
+            (long)s.st_size,
+            fecha,
+            filename);
+
+        // si es enlace simbólico y está habilitado mostrar links, imprime destino del enlace
+        if (S_ISLNK(s.st_mode) && g_link == LINK) {
+            ssize_t len = readlink(fullpath, linkdest, sizeof(linkdest) - 1);
+            if (len != -1) {
+                linkdest[len] = '\0';
+                printf(" -> %s", linkdest);
+            }
+        }
+        // salto de línea final
+        printf("\n");
+    }
+}
+
+static int list_directory_recursive(const char *path, int recurse_before,int list_contents) {
+    // abre el directorio; si falla muestra error y devuelve 1
+    DIR *dirp = opendir(path);
+    if (!dirp) {
+        perror(path);
+        return 1;
+    }
+
+    struct dirent *dp;
+    struct stat s;
+    char fullpath[4096];
+
+    // si está configurada la recursión antes (recb)
+    if (recurse_before && g_recursion == RECB && list_contents) {
+        rewinddir(dirp); // vuelve al principio del directorio
+        while ((dp = readdir(dirp)) != NULL) {
+            // ignora ocultos si no se deben mostrar
+            if (g_hidden == NO_HID && dp->d_name[0] == '.') continue;
+
+            // construye ruta completa y prueba crear stat
+            snprintf(fullpath, sizeof(fullpath), "%s/%s", path, dp->d_name);
+            if (lstat(fullpath, &s) == -1) {
+                perror(fullpath);
+                continue;
+            }
+            // si es un subdirectorio y no es '.' ni '..', llama recursivamente primero a ese subdirectorio
+            if (S_ISDIR(s.st_mode) && strcmp(dp->d_name, ".") != 0 
+                && strcmp(dp->d_name, "..") != 0) {
+                printf("\n%s:\n", fullpath);
+                list_directory_recursive(fullpath, recurse_before, list_contents);
+            }
+        }
+    }
+
+    // listamos todos los archivos del directorio actual que corresponden
+    rewinddir(dirp);
+    while ((dp = readdir(dirp)) != NULL) {
+        if (g_hidden==NO_HID && dp->d_name[0] == '.') continue;
+        if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) continue;
+
+        print_file_info(path, dp->d_name);
+    }
+
+    // si la recursión está configurada para después (reca)
+    if (!recurse_before && g_recursion == RECA && list_contents) {
+        rewinddir(dirp);
+        while ((dp = readdir(dirp)) != NULL) {
+            if (g_hidden==NO_HID && dp->d_name[0] == '.') continue;
+            snprintf(fullpath, sizeof(fullpath), "%s/%s", path, dp->d_name);
+            if (lstat(fullpath, &s) == -1) {
+                perror(fullpath);
+                continue;
+            }
+            if (S_ISDIR(s.st_mode) && strcmp(dp->d_name, ".") != 0 
+                && strcmp(dp->d_name, "..") != 0) {
+                printf("\n%s:\n", fullpath);
+                list_directory_recursive(fullpath, recurse_before, list_contents);
+            }
+        }
+    }
+
+    // cierra el directorio y retorna éxito
+    closedir(dirp);
+    return 0;
+}
+
+int cmd_dir(char *trozos[], int ntrozos, Listas L) {
+    // cuentan argumentos efectivamente no nulos
+    int actual_args = 0;
+    for (int i = 0; i < ntrozos; i++) {
+        if (trozos[i] == NULL) break;
+        actual_args++;
+    }
+
+    // se guarda el tipo de recursión (antes o después)
+    int recurse_before = (g_recursion == RECB);
+     int list_dir_contents = 0;
+    int start_index = 0;
+
+    // si no hay argumentos listamos el directorio actual
+    if (actual_args == 0) {
+        printf(".:\n");
+        return list_directory_recursive(".", recurse_before,list_dir_contents);
+    }
+
+   
+
+    // si el primer argumento es -d, listamos contenido de directorios
+    if (actual_args > 0 && trozos[0] != NULL && strcmp(trozos[0], "-d") == 0) {
+        list_dir_contents = 1;
+        start_index = 1;
+        if (actual_args == 1) {
+            printf(".:\n");
+            return list_directory_recursive(".", recurse_before, list_dir_contents);
+        }
+    }
+
+    // para cada argumento que no sea NULL
+    for (int i = start_index; i < actual_args; i++) {
+        const char *name = trozos[i];
+        struct stat s;
+        if (!name) continue;
+
+        // hace stat para conocer el tipo de archivo
+        if (lstat(name, &s) == -1) {
+            perror(name);
+            continue;
+        }
+
+        // ignora ocultos si el parámetro está configurado para no mostrarlos
+        if (g_hidden == NO_HID) {
+            const char *base = strrchr(name, '/');
+            base = base ? base + 1 : name;
+            if (base[0] == '.') continue;
+        }
+
+        // si es directorio y -d fue usado antes, lista contenido; si no imprime info del directorio
+        if (S_ISDIR(s.st_mode)) {
+            if (list_dir_contents) {
+                printf("%s:\n", name);
+                list_directory_recursive(name, recurse_before, list_dir_contents);
+            } else {
+                // si tiene ruta, separa para usar print_file_info correctamente
+                const char *slash = strrchr(name, '/');
+                if (slash) {
+                    char dirpath[4096];
+                    size_t len = slash - name;
+                    if (len >= sizeof(dirpath)) len = sizeof(dirpath) - 1;
+                    strncpy(dirpath, name, len);
+                    dirpath[len] = '\0';
+                    print_file_info(dirpath, slash + 1);
+                } else {
+                    print_file_info(".", name);
+                }
+            }
+        } else {
+            // similar para archivos que no sean directorios
+            const char *slash = strrchr(name, '/');
+            if (slash) {
+                char dirpath[4096];
+                size_t len = slash - name;
+                if (len >= sizeof(dirpath)) len = sizeof(dirpath) - 1;
+                strncpy(dirpath, name, len);
+                dirpath[len] = '\0';
+                print_file_info(dirpath, slash + 1);
+            } else {
+                print_file_info(".", name);
+            }
+        }
+    }
+
+    return 0;
+}
+
+

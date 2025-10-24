@@ -80,9 +80,7 @@ bool InsertItem(tList *l1,tItem item,tPos p) {
     return false;
 }
 void RemoveElement(tList *l1, tPos p) {
-    if (isEmptyList(*l1) || p == LNULL) {
-        return; // Lista vacía o posición inválida, no hay nada que hacer
-    }
+    if (isEmptyList(*l1) || p == LNULL) return;
 
     if (p == *l1) {
         // Caso: Eliminar el primer nodo
@@ -107,14 +105,29 @@ tItem getItem(tList l1,tPos p) {
     return p->item;
 }
 
-void deleteList(tList *l1) {
+void deleteList(tList *l1,char type) {
 
     if(!isEmptyList(*l1)) {
-       while (!isEmptyList(*l1)) {
-           RemoveElement(l1, *l1);
-       }
+        switch(type) {
+            case 'H':
+                while (!isEmptyList(*l1)) {
+                    RemoveHistoricElement(l1, *l1);
+                }    
+            break;
+            case 'O':
+                while (!isEmptyList(*l1)) {
+                    RemoveOpenFileElement(l1, *l1);
+                }
+            break;
+            default:
+                while (!isEmptyList(*l1)) {
+                RemoveElement(l1, *l1);
+                }
+            break;
+        }
     }
 }
+
 int sizeList(tList l1) {
     int size=0;
     if(!isEmptyList(l1)) {
@@ -126,4 +139,42 @@ int sizeList(tList l1) {
     }
     return size;
 }
+// ================================================
+// RemoveElement y deleteList para HistoricList
+// ================================================
+void RemoveHistoricElement(tList *l, tPos p) {
+    if (isEmptyList(*l) || p == LNULL) return;
 
+    tItemH item = (tItemH)getItem(*l, p);
+    if (item != NULL) {
+        free(item->comando); // liberar cadena strdup
+        free(item);          // liberar estructura
+    }
+    RemoveElement(l, p);
+}
+
+void DeleteHistoricList(tList *l) {
+    while (!isEmptyList(*l)) {
+        RemoveHistoricElement(l, *l);
+    }
+}
+
+// ================================================
+// RemoveElement y deleteList para OpenFilesList
+// ================================================
+void RemoveOpenFileElement(tList *l, tPos p) {
+    if (isEmptyList(*l) || p == LNULL) return;
+
+    tItemF item = (tItemF)p->item;
+    if (item != NULL) {
+        free(item->name); // liberar cadena strdup
+        free(item);       // liberar estructura
+    }
+    RemoveElement(l, p);
+}
+
+void DeleteOpenFilesList(tList *l) {
+    while (!isEmptyList(*l)) {
+        RemoveOpenFileElement(l, *l);
+    }
+}

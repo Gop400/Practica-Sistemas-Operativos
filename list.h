@@ -53,7 +53,7 @@ typedef struct structListas* Listas;
 
 int sizeList(tList l1);
 void createNode(tPos *p);
-void deleteList(tList *l1);
+void deleteList(tList *l1,char type);
 tItem getItem(tList l1,tPos p);
 tPos first(tList l1);
 tPos last(tList l1);
@@ -63,6 +63,10 @@ void RemoveElement(tList *l1,tPos p);
 bool isEmptyList(tList l1);
 tPos previous(tList l1,tPos p);
 tPos next(tList l1,tPos p);
+void RemoveOpenFileElement(tList *l, tPos p);
+void DeleteOpenFilesList(tList *l);
+void RemoveHistoricElement(tList *l, tPos p);
+void DeleteHistoricList(tList *l);
 
 #endif //LIST_H
 

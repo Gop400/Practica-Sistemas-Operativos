@@ -24,6 +24,7 @@ int main() {
     CreateEmptyList(&f);
     L->OpenFilesList=f;
     L->HistoricList=h;
+    initOpenList(L);
     while(1) {
         printf(":~$");
         fgets(cadena,sizeof(cadena),stdin);
@@ -38,10 +39,8 @@ int main() {
             printf("Escriba un comando\n");
         }
     }
-    deleteList(&L->HistoricList);
-    deleteList(&L->OpenFilesList);
-    free(L->OpenFilesList);
-    free(L->HistoricList);
+    deleteList(&L->HistoricList,'H');
+    deleteList(&L->OpenFilesList,'O');
     free(L);
     return 0;
 }

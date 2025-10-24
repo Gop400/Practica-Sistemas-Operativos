@@ -1,3 +1,5 @@
+#ifndef AUX_H
+#define AUX_H
 #include "list.h"
 #include "p0.h"
 #include "p1.h"
@@ -20,5 +22,10 @@ void AnadirAFicherosAbiertos(tList *F,int fd, int modo, const char *nombre);
 void PrintOpenFiles(tList F);
 int aux_remove_rec(const char *path);
 char * ConvierteModo (mode_t m, char *permisos);
+void initOpenList(Listas L);
+void FreeHistoricList(tList *l);
+void FreeOpenFilesList(tList *l1);
+char* GetDirParamsString(DirFormat f, LinkOption l, HiddenOption h, RecursionOption r);
 
 char LetraTF (mode_t m);
+#endif //AUX_H

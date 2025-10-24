@@ -246,7 +246,7 @@ int historic(char *trozos[],int ntrozos,Listas L) {
     if(ntrozos==2) {
         if(trozos[0][0]=='-') {
             if(strcmp(trozos[0]+1,"clear")==0){
-                deleteList(&L->HistoricList);
+                deleteList(&L->HistoricList,'H');
                 if(isEmptyList(L->HistoricList)){
                     printf("lista vacia\n");
                     return 0;
@@ -268,7 +268,7 @@ int historic(char *trozos[],int ntrozos,Listas L) {
         }
         n=strtol(trozos[0],&endnptr,10);
         if(endnptr!=trozos[0] && n>=0) {
-            RemoveElement(&L->HistoricList,last(L->HistoricList));
+            RemoveHistoricElement(&L->HistoricList,last(L->HistoricList));
             Ncmd(n,L);
             return 0;
         }
@@ -319,20 +319,24 @@ int Cmd_open (char * trozos[],int ntrozos,Listas L){
 
 int Cmd_close (char *trozos[],int ntrozos,Listas L){ 
     int df;
-    if (ntrozos==1){
-        perror("Introduzca un descriptor de fichero a cerrar");
-        return 1;
-    }
-    if((df=atoi(trozos[0]))<0 && ntrozos==2){
-        perror("Descriptor de fichero invalido");
+    if (ntrozos<2){
+        fprintf(stderr,"Introduzca un descriptor de fichero a cerrar\n");
         return 1;
     }
     if(ntrozos>2){
        perror("Demasiados argumentos");
        return 1; 
     }
+    char *endptr;
+    long df_long = strtol(trozos[0], &endptr, 10);
+    if (*endptr != '\0' || df_long < 0) {
+        fprintf(stderr, "Descriptor de fichero invalido\n");
+        return 1;
+    }
+    df = (int)df_long;
+   
     tPos p=first(L->OpenFilesList);
-        tItemF file;
+    tItemF file;
         while(p!=LNULL){
             file=(tItemF)getItem(L->OpenFilesList,p);
             if(file->df==df){
@@ -340,12 +344,13 @@ int Cmd_close (char *trozos[],int ntrozos,Listas L){
                     perror("Error al cerrar el fichero");
                     return 1;
                 }
-                RemoveElement(&L->OpenFilesList,p);
+                RemoveOpenFileElement(&L->OpenFilesList,p);
                 printf("Descriptor %d cerrado y eliminado de la lista\n",df);
                 return 0;
             }
             p=next(L->OpenFilesList,p);
         } 
+    fprintf(stderr, "Descriptor %d no encontrado en la lista\n", df);
     return 1;
 }
 int listopen(char *trozos[],int ntrozos,Listas L){
