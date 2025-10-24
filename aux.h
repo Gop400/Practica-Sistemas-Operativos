@@ -27,5 +27,6 @@ void FreeHistoricList(tList *l);
 void FreeOpenFilesList(tList *l1);
 char* GetDirParamsString(DirFormat f, LinkOption l, HiddenOption h, RecursionOption r);
 
+
 char LetraTF (mode_t m);
 #endif //AUX_H

@@ -272,9 +272,9 @@ int setdirparams(char *trozos[], int ntrozos, Listas L) {
     printf("Parámetros actualizados correctamente.\n");
     return 0;
 }
-static void print_file_info(const char *dirpath, const char *filename) {
+ void print_file_info(const char *dirpath, const char *filename) {
     char fullpath[4096], linkdest[4096], permisos[12];
-    snprintf(fullpath, sizeof(fullpath), "%s/%s", dirpath, filename);
+    snprintf(fullpath, sizeof(fullpath), "%s/%s", dirpath, filename);// Construir la ruta completa
 
     struct stat s;
     if (lstat(fullpath, &s) == -1) {
@@ -314,7 +314,7 @@ static void print_file_info(const char *dirpath, const char *filename) {
     }
 }
 
-static int list_directory_recursive(const char *path, int recurse_before, int list_contents) {
+static int list_directory_recursive(const char *path, int list_contents) {
     DIR *dirp = opendir(path);
     if (!dirp) {
         perror(path);
@@ -326,7 +326,7 @@ static int list_directory_recursive(const char *path, int recurse_before, int li
     char fullpath[4096];
 
     // RECB: primero recursión en subdirectorios
-    if (recurse_before && g_recursion == RECB && list_contents) {
+    if (g_recursion == RECB && list_contents) {
         rewinddir(dirp);
         while ((dp = readdir(dirp)) != NULL) {
             if (g_hidden == NO_HID && dp->d_name[0] == '.') continue;
@@ -336,7 +336,7 @@ static int list_directory_recursive(const char *path, int recurse_before, int li
             if (lstat(fullpath, &s) == -1) continue;
 
             if (S_ISDIR(s.st_mode)) {
-                list_directory_recursive(fullpath, recurse_before, list_contents);
+                list_directory_recursive(fullpath, list_contents);
             }
         }
         rewinddir(dirp);
@@ -352,7 +352,7 @@ static int list_directory_recursive(const char *path, int recurse_before, int li
     }
 
     // RECA: primero listar archivos y luego recursión en subdirectorios
-    if (!recurse_before && g_recursion == RECA && list_contents) {
+    if (g_recursion == RECA && list_contents) {
         rewinddir(dirp);
         while ((dp = readdir(dirp)) != NULL) {
             if (g_hidden == NO_HID && dp->d_name[0] == '.') continue;
@@ -362,7 +362,7 @@ static int list_directory_recursive(const char *path, int recurse_before, int li
             if (lstat(fullpath, &s) == -1) continue;
 
             if (S_ISDIR(s.st_mode)) {
-                list_directory_recursive(fullpath, recurse_before, list_contents);
+                list_directory_recursive(fullpath, list_contents);
             }
         }
     }
@@ -373,9 +373,9 @@ static int list_directory_recursive(const char *path, int recurse_before, int li
 
 int cmd_dir(char *trozos[], int ntrozos, Listas L) {
     int actual_args = 0;
+    //se calcula el numero de trozos ,sin contar la funcion dir hay en la setencia
     for (int i = 0; i < ntrozos && trozos[i] != NULL; i++) actual_args++;
 
-    int recurse_before = (g_recursion == RECB);
     int list_dir_contents = 0;
     int start_index = 0;
 
@@ -383,41 +383,47 @@ int cmd_dir(char *trozos[], int ntrozos, Listas L) {
     if (actual_args > 0 && strcmp(trozos[0], "-d") == 0) {
         list_dir_contents = 1;
         start_index = 1;
+        //no permite usar solo el -d sin mas argumentos
         if (actual_args == 1) {
             fprintf(stderr, "Error: se requiere al menos un directorio después de -d\n");
             return 1;
         }
     }
+    if (start_index >= actual_args) {
+        fprintf(stderr, "Error: se requiere al menos un directorio para listar\n");
+        return 1;
+    }
 
     for (int i = start_index; i < actual_args; i++) {
         const char *name = trozos[i];
         struct stat s;
-        if (!name) continue;
-
+        if (!name) continue;//
+        //devuelve 0 si pudo obtener la informacion del archivo o directorio y guardarla en s
         if (lstat(name, &s) == -1) {
-            perror(name);
+            fprintf(stderr, "%s imposible de acceder: %s\n", name, strerror(errno));    
             continue;
         }
 
-        if (g_hidden == NO_HID) {
-            const char *base = strrchr(name, '/');
-            base = base ? base + 1 : name;
-            if (base[0] == '.') continue;
+        if (g_hidden == NO_HID) {//comprobar si es archivo oculto
+            
+            const char *base = strrchr(name, '/');//buscar la ultima aparicion de / en la cadena name,base apunta a esa posicion
+            base = base ? base + 1 : name;//si base no es NULL, apunta al caracter despues de /, si es NULL apunta al inicio de name
+            if (base[0] == '.') continue;//si el primer caracter de base es ., se omite el archivo o directorio(noHID)
         }
 
         if (S_ISDIR(s.st_mode) && list_dir_contents) {
-            list_directory_recursive(name, recurse_before, list_dir_contents);
+            list_directory_recursive(name, list_dir_contents);
         } else {
-            const char *slash = strrchr(name, '/');
+            const char *slash = strrchr(name, '/');//buscar la ultima aparicion de / en la cadena name
             char dirpath[4096];
-            if (slash) {
-                size_t len = slash - name;
-                if (len >= sizeof(dirpath)) len = sizeof(dirpath) - 1;
-                strncpy(dirpath, name, len);
-                dirpath[len] = '\0';
-                print_file_info(dirpath, slash + 1);
+            if (slash) {//si se encontro /
+                size_t len = slash - name;//calcular la longitud del path del directorio hasta /
+                if (len >= sizeof(dirpath)) len = sizeof(dirpath) - 1;//asegurar que no se desborde el buffer
+                strncpy(dirpath, name, len);//copiar el path del directorio en dirpath
+                dirpath[len] = '\0';//agregar el terminador nulo
+                print_file_info(dirpath, slash + 1);//imprimir la informacion del archivo usando el path del directorio y el nombre del archivo
             } else {
-                print_file_info(".", name);
+                print_file_info(".", name);//si no hay /, usar el directorio actual
             }
         }
     }
