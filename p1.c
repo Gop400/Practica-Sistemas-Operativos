@@ -272,42 +272,28 @@ int setdirparams(char *trozos[], int ntrozos, Listas L) {
     printf("Parámetros actualizados correctamente.\n");
     return 0;
 }
-
-
-
-
-
-
 static void print_file_info(const char *dirpath, const char *filename) {
-    // construye la ruta completa del archivo uniendo directorio y nombre de archivo
     char fullpath[4096], linkdest[4096], permisos[12];
     snprintf(fullpath, sizeof(fullpath), "%s/%s", dirpath, filename);
 
     struct stat s;
-    // obtiene información del archivo; si falla, muestra error y sale
     if (lstat(fullpath, &s) == -1) {
-        fprintf(stderr,"%s imposible de acceder :%s\n",fullpath,strerror(errno));
+        fprintf(stderr, "%s imposible de acceder: %s\n", fullpath, strerror(errno));
         return;
     }
-    // si no se muestran ocultos y el archivo empieza con '.', salta sin imprimir
+
     if (g_hidden == NO_HID && filename[0] == '.') return;
 
-    // si el formato no es largo, simplemente muestra el nombre y tamaño
     if (g_format == SHORT_FORMAT) {
         printf("%s\t%ld bytes\n", filename, (long)s.st_size);
     } else {
-        // usa función auxiliar para convertir modo en texto de permisos
         ConvierteModo(s.st_mode, permisos);
-
-        // obtiene usuario y grupo propietario
         struct passwd *pw = getpwuid(s.st_uid);
         struct group *gr = getgrgid(s.st_gid);
 
-        // formatea la fecha de última modificación
         char fecha[32];
         strftime(fecha, sizeof(fecha), "%Y-%m-%d %H:%M", localtime(&s.st_mtime));
 
-        // imprime permisos, enlaces, propietario, grupo, tamaño, fecha y nombre
         printf("%s %2lu %s %s %8ld %s %s",
             permisos,
             (unsigned long)s.st_nlink,
@@ -317,7 +303,6 @@ static void print_file_info(const char *dirpath, const char *filename) {
             fecha,
             filename);
 
-        // si es enlace simbólico y está habilitado mostrar links, imprime destino del enlace
         if (S_ISLNK(s.st_mode) && g_link == LINK) {
             ssize_t len = readlink(fullpath, linkdest, sizeof(linkdest) - 1);
             if (len != -1) {
@@ -325,13 +310,11 @@ static void print_file_info(const char *dirpath, const char *filename) {
                 printf(" -> %s", linkdest);
             }
         }
-        // salto de línea final
         printf("\n");
     }
 }
 
-static int list_directory_recursive(const char *path, int recurse_before,int list_contents) {
-    // abre el directorio; si falla muestra error y devuelve 1
+static int list_directory_recursive(const char *path, int recurse_before, int list_contents) {
     DIR *dirp = opendir(path);
     if (!dirp) {
         perror(path);
@@ -342,134 +325,92 @@ static int list_directory_recursive(const char *path, int recurse_before,int lis
     struct stat s;
     char fullpath[4096];
 
-    // si está configurada la recursión antes (recb)
+    // RECB: primero recursión en subdirectorios
     if (recurse_before && g_recursion == RECB && list_contents) {
-        rewinddir(dirp); // vuelve al principio del directorio
+        rewinddir(dirp);
         while ((dp = readdir(dirp)) != NULL) {
-            // ignora ocultos si no se deben mostrar
             if (g_hidden == NO_HID && dp->d_name[0] == '.') continue;
+            if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) continue;
 
-            // construye ruta completa y prueba crear stat
             snprintf(fullpath, sizeof(fullpath), "%s/%s", path, dp->d_name);
-            if (lstat(fullpath, &s) == -1) {
-                perror(fullpath);
-                continue;
-            }
-            // si es un subdirectorio y no es '.' ni '..', llama recursivamente primero a ese subdirectorio
-            if (S_ISDIR(s.st_mode) && strcmp(dp->d_name, ".") != 0 
-                && strcmp(dp->d_name, "..") != 0) {
-                printf("\n%s:\n", fullpath);
+            if (lstat(fullpath, &s) == -1) continue;
+
+            if (S_ISDIR(s.st_mode)) {
                 list_directory_recursive(fullpath, recurse_before, list_contents);
             }
         }
+        rewinddir(dirp);
     }
 
-    // listamos todos los archivos del directorio actual que corresponden
-    rewinddir(dirp);
+    // Listado de archivos/directorios actuales
+    printf("************%s\n", path);
     while ((dp = readdir(dirp)) != NULL) {
-        if (g_hidden==NO_HID && dp->d_name[0] == '.') continue;
+        if (g_hidden == NO_HID && dp->d_name[0] == '.') continue;
         if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) continue;
 
         print_file_info(path, dp->d_name);
     }
 
-    // si la recursión está configurada para después (reca)
+    // RECA: primero listar archivos y luego recursión en subdirectorios
     if (!recurse_before && g_recursion == RECA && list_contents) {
         rewinddir(dirp);
         while ((dp = readdir(dirp)) != NULL) {
-            if (g_hidden==NO_HID && dp->d_name[0] == '.') continue;
+            if (g_hidden == NO_HID && dp->d_name[0] == '.') continue;
+            if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) continue;
+
             snprintf(fullpath, sizeof(fullpath), "%s/%s", path, dp->d_name);
-            if (lstat(fullpath, &s) == -1) {
-                perror(fullpath);
-                continue;
-            }
-            if (S_ISDIR(s.st_mode) && strcmp(dp->d_name, ".") != 0 
-                && strcmp(dp->d_name, "..") != 0) {
-                printf("\n%s:\n", fullpath);
+            if (lstat(fullpath, &s) == -1) continue;
+
+            if (S_ISDIR(s.st_mode)) {
                 list_directory_recursive(fullpath, recurse_before, list_contents);
             }
         }
     }
 
-    // cierra el directorio y retorna éxito
     closedir(dirp);
     return 0;
 }
 
 int cmd_dir(char *trozos[], int ntrozos, Listas L) {
-    // cuentan argumentos efectivamente no nulos
     int actual_args = 0;
-    for (int i = 0; i < ntrozos; i++) {
-        if (trozos[i] == NULL) break;
-        actual_args++;
-    }
+    for (int i = 0; i < ntrozos && trozos[i] != NULL; i++) actual_args++;
 
-    // se guarda el tipo de recursión (antes o después)
     int recurse_before = (g_recursion == RECB);
-     int list_dir_contents = 0;
+    int list_dir_contents = 0;
     int start_index = 0;
 
-    // si no hay argumentos listamos el directorio actual
-    if (actual_args == 0) {
-        printf(".:\n");
-        return list_directory_recursive(".", recurse_before,list_dir_contents);
-    }
-
-   
-
-    // si el primer argumento es -d, listamos contenido de directorios
-    if (actual_args > 0 && trozos[0] != NULL && strcmp(trozos[0], "-d") == 0) {
+    // Si el primer argumento es -d
+    if (actual_args > 0 && strcmp(trozos[0], "-d") == 0) {
         list_dir_contents = 1;
         start_index = 1;
         if (actual_args == 1) {
-            printf(".:\n");
-            return list_directory_recursive(".", recurse_before, list_dir_contents);
+            fprintf(stderr, "Error: se requiere al menos un directorio después de -d\n");
+            return 1;
         }
     }
 
-    // para cada argumento que no sea NULL
     for (int i = start_index; i < actual_args; i++) {
         const char *name = trozos[i];
         struct stat s;
         if (!name) continue;
 
-        // hace stat para conocer el tipo de archivo
         if (lstat(name, &s) == -1) {
             perror(name);
             continue;
         }
 
-        // ignora ocultos si el parámetro está configurado para no mostrarlos
         if (g_hidden == NO_HID) {
             const char *base = strrchr(name, '/');
             base = base ? base + 1 : name;
             if (base[0] == '.') continue;
         }
 
-        // si es directorio y -d fue usado antes, lista contenido; si no imprime info del directorio
-        if (S_ISDIR(s.st_mode)) {
-            if (list_dir_contents) {
-                printf("%s:\n", name);
-                list_directory_recursive(name, recurse_before, list_dir_contents);
-            } else {
-                // si tiene ruta, separa para usar print_file_info correctamente
-                const char *slash = strrchr(name, '/');
-                if (slash) {
-                    char dirpath[4096];
-                    size_t len = slash - name;
-                    if (len >= sizeof(dirpath)) len = sizeof(dirpath) - 1;
-                    strncpy(dirpath, name, len);
-                    dirpath[len] = '\0';
-                    print_file_info(dirpath, slash + 1);
-                } else {
-                    print_file_info(".", name);
-                }
-            }
+        if (S_ISDIR(s.st_mode) && list_dir_contents) {
+            list_directory_recursive(name, recurse_before, list_dir_contents);
         } else {
-            // similar para archivos que no sean directorios
             const char *slash = strrchr(name, '/');
+            char dirpath[4096];
             if (slash) {
-                char dirpath[4096];
                 size_t len = slash - name;
                 if (len >= sizeof(dirpath)) len = sizeof(dirpath) - 1;
                 strncpy(dirpath, name, len);
@@ -483,5 +424,3 @@ int cmd_dir(char *trozos[], int ntrozos, Listas L) {
 
     return 0;
 }
-
-
