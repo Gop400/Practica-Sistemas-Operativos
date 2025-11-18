@@ -164,7 +164,6 @@ int Cmd_lseek(char *trozos[], int ntrozos, Listas L) {
     off_t off = atoll(trozos[1]);
     int ref;
 
-    // --- 1️⃣ Interpretar el argumento de referencia ---
     if (strcmp(trozos[2], "SEEK_SET") == 0)
         ref = SEEK_SET;
     else if (strcmp(trozos[2], "SEEK_CUR") == 0)
@@ -176,7 +175,6 @@ int Cmd_lseek(char *trozos[], int ntrozos, Listas L) {
         return 1;
     }
 
-    // --- 2️⃣ Buscar el fichero en la lista ---
     if (isEmptyList(L->OpenFilesList)) {
         fprintf(stderr, "Error: lista de ficheros no inicializada.\n");
         return 1;
@@ -199,24 +197,20 @@ int Cmd_lseek(char *trozos[], int ntrozos, Listas L) {
         return 1;
     }
 
-    // --- 3️⃣ Obtener información del fichero ---
     struct stat st;
     if (fstat(file->df, &st) == -1) {
         perror("Error al obtener información del fichero");
         return 1;
     }
 
-    // --- 4️⃣ Mover el offset ---
     off_t nuevo_off = lseek(file->df, off, ref);
     if (nuevo_off == (off_t)-1) {
         perror("Error al cambiar el offset con lseek");
         return 1;
     }
 
-    // --- 5️⃣ Actualizar offset en la estructura ---
     file->offset = nuevo_off;
 
-    // --- 6️⃣ Mostrar información detallada con tus funciones auxiliares ---
     char permisos[12];
     ConvierteModo(st.st_mode, permisos); // Usa tu función auxiliar
 
@@ -272,7 +266,7 @@ int setdirparams(char *trozos[], int ntrozos, Listas L) {
     printf("Parámetros actualizados correctamente.\n");
     return 0;
 }
- void print_file_info(const char *dirpath, const char *filename) {
+static void print_file_info(const char *dirpath, const char *filename) {
     char fullpath[4096], linkdest[4096], permisos[12];
     snprintf(fullpath, sizeof(fullpath), "%s/%s", dirpath, filename);// Construir la ruta completa
 

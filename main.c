@@ -1,7 +1,8 @@
 
 /*Autor1:Gabriel Oliveira Pais
  *Autor2:Samuel Mouriño
- samuel.mouriño@udc.es
+ *email1:g.oliveira@udc.es
+ *email2:samuel.mouriño@udc.es
  */
 #define size_cadena 1024
 #include "p0.h"
