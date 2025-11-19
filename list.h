@@ -23,11 +23,23 @@
 #define Max_OpenFiles 20
 #define LNULL NULL
 
+enum tAllocL { MALLOC, SHARED, MAPPED };
+typedef char tFNameL[1024];
+
+
 struct structHist {
     char *comando;
     int id;
 };
-
+struct structMem {
+    void * address; // Dirección de la memoria asignada
+    int size; // Tamaño en bits de la memoria asignada
+    time_t time; // Fecha de asignación de memoria
+    enum tAllocL alloc; // Tipo de asignación de memoria. Valores válidos: MALLOC, SHARED, MAPPED
+    key_t smb_key; // Clave para memory blocks
+    tFNameL file_name; // Nombre del archivo para archivos mapeados
+    int file_desc; // Descriptor del archivo para archivos mapeados
+};
 struct structOpenFile {
     char *name; 
     int df;
@@ -37,6 +49,7 @@ struct structOpenFile {
 typedef void* tItem;
 typedef struct structHist* tItemH;
 typedef struct structOpenFile* tItemF;
+typedef struct structMem* tItemM;
 
 typedef struct tNode* tPos;
 struct tNode{
@@ -47,6 +60,7 @@ typedef tPos tList;
 struct structListas{
     tList HistoricList;
     tList OpenFilesList;
+    tList MemList;
 
 };
 typedef struct structListas* Listas;
@@ -67,6 +81,7 @@ void RemoveOpenFileElement(tList *l, tPos p);
 void DeleteOpenFilesList(tList *l);
 void RemoveHistoricElement(tList *l, tPos p);
 void DeleteHistoricList(tList *l);
+void RemoveMemElement(tList *l, tPos p);
 
 #endif //LIST_H
 

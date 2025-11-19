@@ -26,7 +26,37 @@ void initOpenList(Listas L);
 void FreeHistoricList(tList *l);
 void FreeOpenFilesList(tList *l1);
 char* GetDirParamsString(DirFormat f, LinkOption l, HiddenOption h, RecursionOption r);
+void Recursiva (int n);
 
+
+void LlenarMemoria (void *p, size_t cont, unsigned char byte);
+void * ObtenerMemoriaShmget (key_t clave, size_t tam, Listas L);
+void do_SharedCreate (char *tr[], Listas L);
+void do_Shared (char *tr[], Listas L);
+void doSharedFree (key_t cl, Listas L);
+void * MapearFichero (char * fichero, int protection);
+
+void do_Mmap(char *arg[],Listas L);
+
+void do_SharedDelkey (char *args[]);
+void * CadenatoPointer (char * s);
+ssize_t LeerFichero (char *f, void *p, size_t cont);
+ssize_t EscribirDescriptor(int df, void *p, size_t cont);
+ssize_t LeerDesdeDescriptor(int df, void *p, size_t cont);
+ssize_t EscribirFichero (char *f, void *p, size_t);
+void MList_print(enum tAllocL tipo,Listas L);
+
+
+int EliminarNodoDireccion(Listas L, void *dir);
+
+
+void* DireccionNodoShared(Listas L, key_t cl);
+
+void MList_print(enum tAllocL tipo,Listas L);
+
+
+
+void Do_pmap (void);
 
 char LetraTF (mode_t m);
 #endif //AUX_H

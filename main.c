@@ -7,6 +7,7 @@
 #define size_cadena 1024
 #include "p0.h"
 #include "p1.h"
+#include "p2.h"
 #include "aux.h"
 
 int main() {
@@ -19,12 +20,15 @@ int main() {
     Listas L;
     tList h;
     tList f;
+    tList m;
 
     L=malloc(sizeof(struct structListas));
     CreateEmptyList(&h);
     CreateEmptyList(&f);
+    CreateEmptyList(&m);
     L->OpenFilesList=f;
     L->HistoricList=h;
+    L->MemList=m;
     initOpenList(L);
     while(1) {
         printf(":~$");
@@ -42,6 +46,7 @@ int main() {
     }
     deleteList(&L->HistoricList,'H');
     deleteList(&L->OpenFilesList,'O');
+    deleteList(&L->MemList,'M');
     free(L);
     return 0;
 }

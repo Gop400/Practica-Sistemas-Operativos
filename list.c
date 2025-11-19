@@ -119,6 +119,10 @@ void deleteList(tList *l1,char type) {
                     RemoveOpenFileElement(l1, *l1);
                 }
             break;
+            case 'M':
+                while (!isEmptyList(*l1)) {
+                    RemoveMemElement(l1, *l1);
+                }
             default:
                 while (!isEmptyList(*l1)) {
                 RemoveElement(l1, *l1);
@@ -177,4 +181,14 @@ void DeleteOpenFilesList(tList *l) {
     while (!isEmptyList(*l)) {
         RemoveOpenFileElement(l, *l);
     }
+}
+
+void RemoveMemElement(tList *l, tPos p) {
+    if (isEmptyList(*l) || p == LNULL) return;
+
+    tItemM item = (tItemM)p->item;
+    if (item != NULL) {
+        free(item);       // liberar estructura
+    }
+    RemoveElement(l, p);
 }
