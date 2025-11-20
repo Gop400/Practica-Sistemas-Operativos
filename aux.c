@@ -8,7 +8,7 @@
 
 int externia, externia2, externia3;
 int externa=1,externb=2, externc=3;
-struct cmd cmds[]={{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dir",cmd_dir},{"setdirparams",setdirparams},{"lseek",Cmd_lseek},{"writestr",Cmd_writestr},{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
+struct cmd cmds[]={{"memdump", Cmd_memdump},{"memfill",Cmd_Memfill},{"mmap", Cmd_Mmap},{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dir",cmd_dir},{"setdirparams",setdirparams},{"lseek",Cmd_lseek},{"writestr",Cmd_writestr},{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -366,7 +366,7 @@ void doSharedFree (key_t cl, Listas L)
 }
 
 
-void * MapearFichero (char * fichero, int protection)
+void * MapearFichero (char * fichero, int protection,Listas L)
 {
     int df, map=MAP_PRIVATE,modo=O_RDONLY;
     struct stat s;
@@ -376,8 +376,21 @@ void * MapearFichero (char * fichero, int protection)
           modo=O_RDWR;
     if (stat(fichero,&s)==-1 || (df=open(fichero, modo))==-1)
           return NULL;
+    if(s.st_size==0){ /*no se puede mapear un fichero de tamaño 0 */
+        close (df);
+        fprintf(stderr, "No se puede mapear un fichero vacío\n");
+        return NULL;
+    }
     if ((p=mmap (NULL,s.st_size, protection,map,df,0))==MAP_FAILED)
            return NULL;
+    tItemM m=(tItem) malloc(sizeof(struct structMem));
+    m->address =p;
+    m->size = s.st_size;
+    m->time = time(NULL);
+    m->alloc = MAPPED;
+    m->file_desc = df;
+    strncpy(m->file_name, fichero, 1024);
+    InsertItem (&L->MemList,m,NULL);
 /* Guardar en la lista    InsertarNodoMmap (&L,p, s.st_size,df,fichero); */
 /* Gurdas en la lista de descriptores usados df, fichero*/
     return p;
@@ -396,10 +409,36 @@ void do_Mmap(char *arg[],Listas L)
             if (strchr(perm,'w')!=NULL) protection|=PROT_WRITE;
             if (strchr(perm,'x')!=NULL) protection|=PROT_EXEC;
      }
-     if ((p=MapearFichero(arg[0],protection))==NULL)
+     if ((p=MapearFichero(arg[0],protection,L))==NULL)
              perror ("Imposible mapear fichero");
      else
              printf ("fichero %s mapeado en %p\n", arg[0], p);
+}
+void RemoveFileFromMmap(Listas L, char *filename)
+{
+   if(isEmptyList(L->MemList)) {
+        perror("No hay archivos mapeados.\n");
+        return;
+    }
+    tPos p = first(L->MemList);
+    while (p != LNULL) {
+        tItemM item = (tItemM) getItem(L->MemList, p);
+        if (strcmp(item->file_name, filename) == 0) {
+            // Desmapear el archivo
+            if (munmap(item->address, item->size) == -1) {
+                perror("Imposible desmapear el archivo");
+                return;
+            }
+            // Cerrar el descriptor de archivo
+            close(item->file_desc);
+            // Eliminar el nodo de la lista
+            RemoveMemElement(&L->MemList, p);
+            printf("Archivo mapeado %s desmapeado y eliminado de la lista.\n", filename);
+            return;
+        }
+        p = next(L->MemList, p);
+    }
+    return;
 }
 
 void do_SharedDelkey (char *args[])
@@ -618,15 +657,29 @@ void MList_print(enum tAllocL tipo,Listas L) {
             char fecha[64];
             struct tm *tminfo = localtime(&item->time);
             strftime(fecha, sizeof(fecha), "%Y-%m-%d %H:%M:%S", tminfo);
+            char info[1024];
 
-            printf("%-18p %-10d %-20s %-10s %-10d\n",
+            // Información según el tipo de bloque
+            if (item->alloc == MAPPED) {
+                // Imprimir el nombre del fichero
+                snprintf(info, sizeof(info), "%s", item->file_name);
+
+            } else if (item->alloc == SHARED) {
+                // Imprimir la clave SMB
+                snprintf(info, sizeof(info), "%d", item->smb_key);
+
+            } else { // MALLOC
+                snprintf(info, sizeof(info), "--");
+            }
+
+            printf("%-18p %-10d %-20s %-10s %-20s\n",
                    item->address,
                    item->size,
                    fecha,
                    (item->alloc == SHARED ? "SHARED" :
-                   item->alloc == MALLOC ? "MALLOC" : 
-                                           "MAPPED"),
-                   item->smb_key
+                    item->alloc == MALLOC ? "MALLOC" : 
+                                            "MAPPED"),
+                   info
             );
         }
 
@@ -654,6 +707,8 @@ void Aux_mem_vars() {
 
 void Aux_mem_blocks(Listas L) {
     MList_print(MALLOC, L);
+    printf("\n");
     MList_print(SHARED, L);
+    printf("\n");
     MList_print(MAPPED, L);
 }

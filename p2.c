@@ -252,3 +252,92 @@ int Cmd_recurse(char *trozos[], int ntrozos, Listas L) {
     Recursiva(n);
     return 0;
 }
+
+int Cmd_Mmap(char *trozos[], int ntrozos, Listas L)
+{
+   if(ntrozos==1){
+         MList_print(MAPPED,L);
+         return 0;  
+   }
+   if(ntrozos!=3){
+        printf("Uso: mmap <fichero> <permisos>\n");
+        return 1;
+   }
+   if(strcmp(trozos[0],"-free")==0){
+        RemoveFileFromMmap(L,trozos[1]);
+        return 0;
+   }
+   do_Mmap(trozos,L);
+   return 0;
+}
+
+int Cmd_Memfill(char *trozos[], int ntrozos, Listas L) {
+    if (ntrozos != 4) {
+        printf("Uso: memfill <addr> <num_bytes> <byte_value>\n");
+        return 1;
+    }
+
+    // Convertir dirección de string a puntero
+    void *p = CadenatoPointer(trozos[0]);
+    if (p == NULL) {
+        fprintf(stderr, "Dirección inválida: %s\n", trozos[0]);
+        return 1;
+    }
+
+    // Convertir número de bytes
+    size_t cont = (size_t) atoll(trozos[1]);
+    if (cont <=0) {
+        fprintf(stderr, "Número de bytes inválido: %s\n", trozos[1]);
+        return 1;
+    }
+
+    // Convertir valor del byte
+    unsigned char byte = (unsigned char) atoi(trozos[2]);
+
+    // Llenar memoria
+    LlenarMemoria(p, cont, byte);
+    printf("Memoria en %p llenada con %zu bytes del valor 0x%02x\n", p, cont, byte);
+    return 0;
+}
+int Cmd_memdump(char *trozos[], int ntrozos,Listas L) {
+
+    if (ntrozos < 3) {
+        printf("Uso: memdump <addr> <cont>\n");
+        return 1;
+    }
+
+    unsigned char *addr = (unsigned char *) strtoul(trozos[1], NULL, 16);
+    long cont = strtol(trozos[2], NULL, 10);
+
+    for (long i = 0; i < cont; i++) {
+        unsigned char c;
+
+        // Intentar leer memoria de forma segura (mínimo intento)
+        // Esto evita crash si addr es NULL o muy baja
+        // Si tu implementación tiene lista de bloques, aquí deberías validar.
+        c = addr[i];
+
+        // Primero imprimimos HEX
+        printf("%02x ", c);
+    }
+
+    printf("\n");
+
+    // Segunda línea: caracteres imprimibles
+    for (long i = 0; i < cont; i++) {
+        unsigned char c = addr[i];
+
+        if (c == '\n')  printf("\\n ");
+        else if (c == '\t') printf("\\t ");
+        else if (c == '\r') printf("\\r ");
+        else if (c == '\0') printf("\\0 ");
+        else if(c == '\'') printf("\\' ");
+        else if (c == '\"') printf("\\\" ");
+        else if (c == '\\') printf("\\\\ ");
+        else if (c >= 32 && c <= 126) printf("%c  ", c);  // imprimible
+        else printf("   "); // NO imprimible → espacio
+    }
+
+    printf("\n");
+    return 0;
+}

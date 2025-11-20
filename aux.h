@@ -34,9 +34,10 @@ void * ObtenerMemoriaShmget (key_t clave, size_t tam, Listas L);
 void do_SharedCreate (char *tr[], Listas L);
 void do_Shared (char *tr[], Listas L);
 void doSharedFree (key_t cl, Listas L);
-void * MapearFichero (char * fichero, int protection);
+void * MapearFichero (char * fichero, int protection,Listas L);
 
 void do_Mmap(char *arg[],Listas L);
+void RemoveFileFromMmap(Listas L, char *filename);
 
 void do_SharedDelkey (char *args[]);
 void * CadenatoPointer (char * s);
