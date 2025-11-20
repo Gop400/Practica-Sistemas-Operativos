@@ -5,7 +5,10 @@
 #include "p1.h"
 #include "p2.h"
 
-struct cmd cmds[]={{"dir",cmd_dir},{"setdirparams",setdirparams},{"lseek",Cmd_lseek},{"writestr",Cmd_writestr},{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
+
+int externia, externia2, externia3;
+int externa=1,externb=2, externc=3;
+struct cmd cmds[]={{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dir",cmd_dir},{"setdirparams",setdirparams},{"lseek",Cmd_lseek},{"writestr",Cmd_writestr},{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -560,7 +563,7 @@ int EliminarNodoDireccion(Listas L, void *dir)
         if (item->address == dir) {
 
             // Eliminar nodo usando tu función
-            RemoveMemElement(L->MemList, p);
+            RemoveMemElement(&L->MemList, p);
 
             return 0;  // éxito
         }
@@ -632,3 +635,25 @@ void MList_print(enum tAllocL tipo,Listas L) {
 }
 
 
+void Aux_mem_funcs() {
+    printf("Funciones programa\t\t%p,\t%p,\t%p\n", MList_print, do_Shared, Addhistoric);
+    printf("Funciones libreria\t\t%p,\t%p,\t%p\n", printf, getpid, wait);
+}
+
+void Aux_mem_vars() {
+    
+    static int statica = 1, staticb = 2, staticc = 3;
+    static int staticia, staticib, staticicc;
+    auto int autoa = 1, autob = 2, autoc = 3;
+    printf("Variables (N.I.) externas\t\t%p,\t%p,\t%p\n", &externia, &externia2, &externia3);
+    printf("Variables externas\t%p,\t%p,\t%p\n", &externa, &externb, &externc);
+    printf("Variables estáticas\t\t%p,\t%p,\t%p\n", &staticia, &staticib, &staticicc);
+    printf("Variables (N.I.) estáticas\t%p,\t%p,\t%p\n", &statica, &staticb, &staticc);
+    printf("Variables automáticas\t\t%p,\t%p,\t%p\n", &autoa, &autob, &autoc);
+}
+
+void Aux_mem_blocks(Listas L) {
+    MList_print(MALLOC, L);
+    MList_print(SHARED, L);
+    MList_print(MAPPED, L);
+}

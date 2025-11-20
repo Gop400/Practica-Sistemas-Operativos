@@ -43,7 +43,7 @@ int Cmd_Free(char *trozos[], int ntrozos, Listas L) {
     /* Buscar el nodo con esa dirección */
     while (p != LNULL) {
         tItemM item = (tItemM) getItem(lista, p);
-        if ((strcmp(item->address,trozos[0]))==0) {
+        if (item->address == CadenatoPointer(trozos[0])) {
             /* Según tipo de asignación */
             switch (item->alloc) {
                 case MALLOC:
@@ -229,12 +229,26 @@ int Cmd_Write(char *trozos[], int ntrozos, Listas L)
     }
 
     // Escribir desde memoria hacia descriptor
-    ssize_t n = EscribirDescriptor(df, p, cont);
+    ssize_t n = EscribirDesdeDescriptor(df, p, cont);
     if (n == -1) {
         fprintf(stderr, "Imposible escribir en descriptor %d: %s\n", df, strerror(errno));
         return 1;
     }
 
     printf("Escritos %lld bytes en descriptor %d desde %p\n", (long long)n, df, p);
+    return 0;
+}
+
+int Cmd_recurse(char *trozos[], int ntrozos, Listas L) {
+    if (ntrozos != 2) {
+        printf("Uso: recurse <n>\n");
+        return 1;
+    }
+    int n = atoi(trozos[0]);
+    if (n <= 0) {
+        printf("El número de recursiones debe ser mayor que 0.\n");
+        return 1;
+    }
+    Recursiva(n);
     return 0;
 }

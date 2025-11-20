@@ -41,7 +41,7 @@ void do_Mmap(char *arg[],Listas L);
 void do_SharedDelkey (char *args[]);
 void * CadenatoPointer (char * s);
 ssize_t LeerFichero (char *f, void *p, size_t cont);
-ssize_t EscribirDescriptor(int df, void *p, size_t cont);
+ssize_t EscribirDesdeDescriptor(int df, void *p, size_t cont);
 ssize_t LeerDesdeDescriptor(int df, void *p, size_t cont);
 ssize_t EscribirFichero (char *f, void *p, size_t);
 void MList_print(enum tAllocL tipo,Listas L);
@@ -53,7 +53,10 @@ int EliminarNodoDireccion(Listas L, void *dir);
 void* DireccionNodoShared(Listas L, key_t cl);
 
 void MList_print(enum tAllocL tipo,Listas L);
+void Aux_mem_funcs();
 
+void Aux_mem_vars();
+void Aux_mem_blocks(Listas L) ;
 
 
 void Do_pmap (void);

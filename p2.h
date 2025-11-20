@@ -14,6 +14,7 @@ int Cmd_WriteFile(char *trozos[], int ntrozos, Listas L) ;
 int Cmd_Read(char *trozos[], int ntrozos, Listas L);
 
 int Cmd_Write(char *trozos[], int ntrozos, Listas L);
+int Cmd_recurse(char *trozos[], int ntrozos, Listas L);
 
 #endif // P2_H
 
