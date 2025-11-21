@@ -8,7 +8,7 @@
 
 int externia, externia2, externia3;
 int externa=1,externb=2, externc=3;
-struct cmd cmds[]={{"memdump", Cmd_memdump},{"memfill",Cmd_Memfill},{"mmap", Cmd_Mmap},{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dir",cmd_dir},{"setdirparams",setdirparams},{"lseek",Cmd_lseek},{"writestr",Cmd_writestr},{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
+struct cmd cmds[]={{"malloc",Cmd_malloc},{"memdump", Cmd_memdump},{"memfill",Cmd_Memfill},{"mmap", Cmd_Mmap},{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dir",cmd_dir},{"setdirparams",setdirparams},{"lseek",Cmd_lseek},{"writestr",Cmd_writestr},{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -542,7 +542,37 @@ ssize_t EscribirDesdeDescriptor(int df, void *p, size_t cont)
     return n;
 }
 
+void Aux_add_malloc_block(void *p, size_t size, Listas L) {
+    tItemM m = (tItem) malloc(sizeof(struct structMem));
+    m->address = p;
+    m->size = size;
+    m->time = time(NULL);
+    m->alloc = MALLOC;
+    strcpy(m->file_name, "-");
+    m->file_desc = -1;
+    InsertItem(&L->MemList, m, NULL);
+    return;
+}
+void Remove_malloc(size_t size, Listas L) {
+    if(isEmptyList(L->MemList)) {
+        fprintf(stderr, "No hay bloques malloc en la lista.\n");
+        return;
+    }
+    tPos p = first(L->MemList);
+    while (p != LNULL) {    
+        tItemM item = (tItemM) getItem(L->MemList, p);
+        if (item->size == size && item->alloc == MALLOC) {
+            free(item->address);
+            RemoveMemElement(&L->MemList, p);
+            printf("Bloque malloc de tamaño %zu eliminado y liberado.\n", size);
+            return;
+        }
+        p = next(L->MemList, p);
+    }
+    fprintf(stderr, "No se encontró un bloque malloc de tamaño %zu en la lista.\n", size);
 
+    return;
+}
 
 ssize_t LeerDesdeDescriptor(int df, void *p, size_t cont)
 {
@@ -642,10 +672,10 @@ void MList_print(enum tAllocL tipo,Listas L) {
         return;
     }
 
-    printf("%-18s %-10s %-20s %-10s %-10s\n",
-           "ADDRESS", "SIZE", "TIME", "ALLOC", "KEY");
+    printf("%-18s %-10s %-20s %-10s %-20s\n",
+           "ADDRESS", "SIZE", "TIME", "ALLOC", "KEY/FICHERO");
 
-    printf("---------------------------------------------------------------\n");
+    printf("-------------------------------------------------------------------------\n");
 
     while (p != NULL) {
 

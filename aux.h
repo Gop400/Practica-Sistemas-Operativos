@@ -46,6 +46,8 @@ ssize_t EscribirDesdeDescriptor(int df, void *p, size_t cont);
 ssize_t LeerDesdeDescriptor(int df, void *p, size_t cont);
 ssize_t EscribirFichero (char *f, void *p, size_t);
 void MList_print(enum tAllocL tipo,Listas L);
+void Aux_add_malloc_block(void *addr, size_t size, Listas L) ;
+void Remove_malloc(size_t size, Listas L) ;
 
 
 int EliminarNodoDireccion(Listas L, void *dir);

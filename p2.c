@@ -8,25 +8,29 @@ int Cmd_shared(char *trozos[], int ntoken, Listas L) {
     }
 
     // shared -create cl n
-    if (strcmp(trozos[0], "-create") == 0) {
+    if (strcmp(trozos[0], "-create") == 0 && ntoken == 4) {
         do_SharedCreate(trozos + 1, L);
         return 0;
     }
 
     // shared -free cl
-    if (strcmp(trozos[0], "-free") == 0) {
+    if (strcmp(trozos[0], "-free") == 0 && ntoken == 3) {
         doSharedFree((key_t) strtoul(trozos[1], NULL, 10), L);
         return 0;
     }
 
     // shared -delkey cl
-    if (strcmp(trozos[0], "-delkey") == 0) {
+    if (strcmp(trozos[0], "-delkey") == 0 && ntoken == 3) {
         do_SharedDelkey(trozos + 1);
         return 0;
     }
     // shared cl   → attach
-    do_Shared(trozos, L);
-    return 0;
+    if(ntoken == 2) {
+        do_Shared(trozos, L);
+        return 0;
+    }
+    fprintf(stderr, "Uso: shared | shared -create <cl> <n> | shared -free <cl> | shared -delkey <cl> | shared <cl>\n");
+    return 1;
 }
 
 int Cmd_Free(char *trozos[], int ntrozos, Listas L) {
@@ -165,7 +169,7 @@ int Cmd_WriteFile(char *trozos[], int ntrozos, Listas L) {
 int Cmd_Read(char *trozos[], int ntrozos, Listas L)
 {
     int df;
-    if (ntrozos < 3) {
+    if (ntrozos < 4){
         fprintf(stderr, "Uso: read <df> <addr> <num_bytes>\n");
         return 1;
     }
@@ -202,7 +206,7 @@ int Cmd_Read(char *trozos[], int ntrozos, Listas L)
 
 int Cmd_Write(char *trozos[], int ntrozos, Listas L)
 {
-    if (ntrozos < 3) {
+    if (ntrozos < 4) {
         fprintf(stderr, "Uso: write <df> <addr> <num_bytes>\n");
         return 1;
     }
@@ -277,67 +281,109 @@ int Cmd_Memfill(char *trozos[], int ntrozos, Listas L) {
         return 1;
     }
 
-    // Convertir dirección de string a puntero
     void *p = CadenatoPointer(trozos[0]);
     if (p == NULL) {
         fprintf(stderr, "Dirección inválida: %s\n", trozos[0]);
         return 1;
     }
 
-    // Convertir número de bytes
     size_t cont = (size_t) atoll(trozos[1]);
     if (cont <=0) {
         fprintf(stderr, "Número de bytes inválido: %s\n", trozos[1]);
         return 1;
     }
 
-    // Convertir valor del byte
-    unsigned char byte = (unsigned char) atoi(trozos[2]);
+    unsigned char byte = (unsigned char)(trozos[2][0]);
 
-    // Llenar memoria
     LlenarMemoria(p, cont, byte);
     printf("Memoria en %p llenada con %zu bytes del valor 0x%02x\n", p, cont, byte);
     return 0;
 }
-int Cmd_memdump(char *trozos[], int ntrozos,Listas L) {
-
-    if (ntrozos < 3) {
-        printf("Uso: memdump <addr> <cont>\n");
+int Cmd_memdump(char *trozos[], int NumTrozos, Listas L) {
+    if (NumTrozos < 3) {
+        printf("Uso: memdump <addr> <num_bytes>\n");
+        return 1  ;
+    }
+    unsigned long long addr_val = strtoull(trozos[0], NULL, 16);
+    if (addr_val == 0) {
+        fprintf(stderr, "Dirección inválida: %s\n", trozos[0]);
         return 1;
     }
 
-    unsigned char *addr = (unsigned char *) strtoul(trozos[1], NULL, 16);
-    long cont = strtol(trozos[2], NULL, 10);
+    unsigned char *address = (unsigned char *) addr_val;
 
-    for (long i = 0; i < cont; i++) {
-        unsigned char c;
-
-        // Intentar leer memoria de forma segura (mínimo intento)
-        // Esto evita crash si addr es NULL o muy baja
-        // Si tu implementación tiene lista de bloques, aquí deberías validar.
-        c = addr[i];
-
-        // Primero imprimimos HEX
-        printf("%02x ", c);
+    if(address == NULL) {
+        fprintf(stderr, "Dirección inválida: %s\n", trozos[0]);
+        return 1;
     }
-
-    printf("\n");
-
-    // Segunda línea: caracteres imprimibles
-    for (long i = 0; i < cont; i++) {
-        unsigned char c = addr[i];
-
-        if (c == '\n')  printf("\\n ");
-        else if (c == '\t') printf("\\t ");
-        else if (c == '\r') printf("\\r ");
-        else if (c == '\0') printf("\\0 ");
-        else if(c == '\'') printf("\\' ");
-        else if (c == '\"') printf("\\\" ");
-        else if (c == '\\') printf("\\\\ ");
-        else if (c >= 32 && c <= 126) printf("%c  ", c);  // imprimible
-        else printf("   "); // NO imprimible → espacio
+    int bytes = atoi(trozos[1]);
+    if (bytes < 0) {
+        fprintf(stderr, "Número de bytes inválido: %s\n", trozos[1]);
+        return 1;
     }
+    int i = 0, j = 0;
 
-    printf("\n");
+    while (i <= bytes) {
+        for (int k = 0; k < 16 && i <= bytes; i++, k++) {
+            unsigned char c = address[i];
+            switch (c) {
+                // Este precioso switch me los escribió ChatGPT porque para
+                // una tarea tan mecánica, pues la IA util un rato es.
+                case '\n': printf(" \\n");
+                    break; // Escapar salto de línea
+                case '\t': printf(" \\t");
+                    break; // Escapar tabulación
+                case '\r': printf(" \\r");
+                    break; // Escapar retorno de carro
+                case '\\': printf(" \\\\");
+                    break; // Escapar barra invertida
+                case '\'': printf(" \\\'");
+                    break; // Escapar comilla simple
+                case '\"': printf(" \\\"");
+                    break; // Escapar comilla doble
+                case 0: printf("   ");
+                    break; // Espacios en blanco
+                default:
+                    if (c >= 32 && c <= 126) printf("%3c", c);
+                    else{
+                        printf("   ");
+                    }
+            }
+        }
+        printf("\n");
+        for (int k = 0; k < 16 && j <= bytes; j++, k++) printf(" %02x", address[j]);
+        printf("\n");
+    }
     return 0;
+}
+
+
+int Cmd_malloc(char *trozos[], int ntrozos, Listas L) {
+    if (ntrozos == 1) 
+    {
+        MList_print(MALLOC, L);
+        return 0;
+    }
+    if(strcmp(trozos[0], "-free") == 0 && ntrozos == 3) {
+        Remove_malloc((size_t) atoll(trozos[1]), L);
+        return 0;
+    }
+    if(ntrozos ==2){
+        size_t cont = (size_t) atoll(trozos[0]);
+        if (cont == 0) {
+            fprintf(stderr, "Número de bytes inválido: %s\n", trozos[0]);
+            return 1;
+        }
+        void *p = malloc(cont);
+        if (p == NULL) {
+            fprintf(stderr, "Imposible asignar memoria malloc: %s\n", strerror(errno));
+            return 1;
+        }
+        Aux_add_malloc_block(p,cont, L);
+        printf("Memoria malloc asignada en %p (%zu bytes)\n", p, cont);
+        return 0;
+    }
+    printf("Uso: malloc <num_bytes> | malloc -free <addr> | malloc\n");
+    return 1;
+
 }
