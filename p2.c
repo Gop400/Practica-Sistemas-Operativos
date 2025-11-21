@@ -2,29 +2,25 @@
 #include "aux.h"
 
 int Cmd_shared(char *trozos[], int ntoken, Listas L) {
-    if (ntoken == 1) { // solo "shared"
+    if (ntoken == 1) { 
         MList_print(SHARED,L);
         return 0;
     }
 
-    // shared -create cl n
     if (strcmp(trozos[0], "-create") == 0 && ntoken == 4) {
         do_SharedCreate(trozos + 1, L);
         return 0;
     }
 
-    // shared -free cl
     if (strcmp(trozos[0], "-free") == 0 && ntoken == 3) {
         doSharedFree((key_t) strtoul(trozos[1], NULL, 10), L);
         return 0;
     }
 
-    // shared -delkey cl
     if (strcmp(trozos[0], "-delkey") == 0 && ntoken == 3) {
         do_SharedDelkey(trozos + 1);
         return 0;
     }
-    // shared cl   → attach
     if(ntoken == 2) {
         do_Shared(trozos, L);
         return 0;
@@ -44,11 +40,9 @@ int Cmd_Free(char *trozos[], int ntrozos, Listas L) {
         printf("Dirección NULL no válida\n");
         return 1;
     }
-    /* Buscar el nodo con esa dirección */
     while (p != LNULL) {
         tItemM item = (tItemM) getItem(lista, p);
         if (item->address == CadenatoPointer(trozos[0])) {
-            /* Según tipo de asignación */
             switch (item->alloc) {
                 case MALLOC:
                     free(CadenatoPointer(trozos[0]));
@@ -72,13 +66,11 @@ int Cmd_Free(char *trozos[], int ntrozos, Listas L) {
                     printf("Tipo de bloque desconocido\n");
                     break;
             }
-            /* Quitar nodo de la lista */
             RemoveMemElement(&(L->MemList), p);
             return 0;
         }
         p = next(lista, p);
     }
-    /* Si llegamos aquí, no lo encontró */
     fprintf(stderr, "No existe ningún bloque con dirección %p\n", CadenatoPointer(trozos[0]));
     return 1;
 }
@@ -114,13 +106,13 @@ int Cmd_Memory(char *trozos[], int ntrozos, Listas L) {
 
 int Cmd_ReadFile (char *trozos[],int ntrozos,Listas L){
     void *p;
-    size_t cont=-1;  /*si no pasamos tamano se lee entero */
+    size_t cont;  
     ssize_t n;
     if (ntrozos<4){
         printf("Uso: readfile <df> <puntero> <num_bytes>\n");
         return 1;
     }
-    p=CadenatoPointer(trozos[1]);  /*convertimos de cadena a puntero*/
+    p=CadenatoPointer(trozos[1]);  
     if(p==NULL){
         fprintf(stderr,"Dirección inválida: %s\n", trozos[1]);
         return 1;
@@ -141,7 +133,7 @@ int Cmd_ReadFile (char *trozos[],int ntrozos,Listas L){
 
 int Cmd_WriteFile(char *trozos[], int ntrozos, Listas L) {
     void *p;
-    size_t cont;  /*si no pasamos tamano se lee entero */
+    size_t cont;  
     ssize_t n;
     if (ntrozos<4){
         printf("Uso: writefile <df> <puntero> <num_bytes>\n");
@@ -151,7 +143,7 @@ int Cmd_WriteFile(char *trozos[], int ntrozos, Listas L) {
     if(p==NULL){
         fprintf(stderr,"Dirección inválida: %s\n", trozos[1]);
         return 1;
-    }  /*convertimos de cadena a puntero*/
+    }  
     cont=(size_t) atoll(trozos[2]);
     if(cont==0){
         fprintf(stderr,"Número de bytes inválido: %s\n", trozos[2]);
@@ -174,26 +166,22 @@ int Cmd_Read(char *trozos[], int ntrozos, Listas L)
         return 1;
     }
 
-    // Convertir descriptor a int
     if ((df=atoi(trozos[0]))<0) {
         fprintf(stderr, "Descriptor de archivo inválido: %s\n", trozos[0]);
         return 1;
     }
-    // Convertir dirección de string a puntero
     void *p = CadenatoPointer(trozos[1]);
     if (p == NULL) {
         fprintf(stderr, "Dirección inválida: %s\n", trozos[1]);
         return 1;
     }
 
-    // Convertir número de bytes
     size_t cont = (size_t) atoll(trozos[2]);
     if (cont == 0) {
         fprintf(stderr, "Número de bytes inválido: %s\n", trozos[2]);
         return 1;
     }
 
-    // Leer desde descriptor
     ssize_t n = LeerDesdeDescriptor(df, p, cont);
     if (n == -1) {
         fprintf(stderr, "Imposible leer del descriptor %d: %s\n", df, strerror(errno));
@@ -211,28 +199,24 @@ int Cmd_Write(char *trozos[], int ntrozos, Listas L)
         return 1;
     }
 
-    // Convertir descriptor a int
     int df = (int) strtol(trozos[0], NULL, 10);
     if (df < 0) {
         fprintf(stderr, "Descriptor de archivo inválido: %s\n", trozos[0]);
         return 1;
     }
 
-    // Convertir dirección de string a puntero
     void *p = CadenatoPointer(trozos[1]);
     if (p == NULL) {
         fprintf(stderr, "Dirección inválida: %s\n", trozos[1]);
         return 1;
     }
 
-    // Convertir número de bytes
     size_t cont = (size_t) atoll(trozos[2]);
     if (cont == 0) {
         fprintf(stderr, "Número de bytes inválido: %s\n", trozos[2]);
         return 1;
     }
 
-    // Escribir desde memoria hacia descriptor
     ssize_t n = EscribirDesdeDescriptor(df, p, cont);
     if (n == -1) {
         fprintf(stderr, "Imposible escribir en descriptor %d: %s\n", df, strerror(errno));
@@ -327,22 +311,20 @@ int Cmd_memdump(char *trozos[], int NumTrozos, Listas L) {
         for (int k = 0; k < 16 && i <= bytes; i++, k++) {
             unsigned char c = address[i];
             switch (c) {
-                // Este precioso switch me los escribió ChatGPT porque para
-                // una tarea tan mecánica, pues la IA util un rato es.
-                case '\n': printf(" \\n");
-                    break; // Escapar salto de línea
+               case '\n': printf(" \\n");
+                    break;
                 case '\t': printf(" \\t");
-                    break; // Escapar tabulación
+                    break;
                 case '\r': printf(" \\r");
-                    break; // Escapar retorno de carro
+                    break; 
                 case '\\': printf(" \\\\");
-                    break; // Escapar barra invertida
+                    break; 
                 case '\'': printf(" \\\'");
-                    break; // Escapar comilla simple
+                    break; 
                 case '\"': printf(" \\\"");
-                    break; // Escapar comilla doble
+                    break; 
                 case 0: printf("   ");
-                    break; // Espacios en blanco
+                    break; 
                 default:
                     if (c >= 32 && c <= 126) printf("%3c", c);
                     else{

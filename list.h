@@ -32,13 +32,13 @@ struct structHist {
     int id;
 };
 struct structMem {
-    void * address; // Dirección de la memoria asignada
-    int size; // Tamaño en bits de la memoria asignada
-    time_t time; // Fecha de asignación de memoria
-    enum tAllocL alloc; // Tipo de asignación de memoria. Valores válidos: MALLOC, SHARED, MAPPED
-    key_t smb_key; // Clave para memory blocks
-    tFNameL file_name; // Nombre del archivo para archivos mapeados
-    int file_desc; // Descriptor del archivo para archivos mapeados
+    void * address;
+    int size; 
+    time_t time;
+    enum tAllocL alloc; 
+    key_t smb_key; 
+    tFNameL file_name; 
+    int file_desc;
 };
 struct structOpenFile {
     char *name; 

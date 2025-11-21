@@ -531,10 +531,8 @@ ssize_t EscribirDesdeDescriptor(int df, void *p, size_t cont)
     ssize_t n;
     int aux;
 
-    // Escribir cont bytes desde memoria hacia el descriptor
     if ((n = write(df, p, cont)) == -1) {
         aux = errno;
-        // No cerramos df porque ya está abierto fuera
         errno = aux;
         return -1;
     }
@@ -586,7 +584,6 @@ ssize_t LeerDesdeDescriptor(int df, void *p, size_t cont)
 
     if ((n = read(df, p, cont)) == -1) {
         aux = errno;
-        // no cerramos df porque ya estaba abierto fuera
         errno = aux;
         return -1;
     }
@@ -605,11 +602,9 @@ ssize_t EscribirFichero( char *f, void *p, size_t cont)
         return -1;
     }
 
-    // Abrir archivo en modo escritura, crear si no existe, truncar si existe
     if ((df = open(f, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1)
         return -1;
 
-    // Escribir cont bytes desde memoria
     if ((n = write(df, p, cont)) == -1) {
         aux = errno;
         close(df);
@@ -631,7 +626,6 @@ int EliminarNodoDireccion(Listas L, void *dir)
         tItemM item = (tItemM) getItem(L->MemList, p);
         if (item->address == dir) {
 
-            // Eliminar nodo usando tu función
             RemoveMemElement(&L->MemList, p);
 
             return 0;  // éxito
@@ -640,7 +634,7 @@ int EliminarNodoDireccion(Listas L, void *dir)
         p = next(L->MemList, p);
     }
 
-    errno = ENOENT;   // no existe la dirección
+    errno = ENOENT;   
     return -1;
 }
 
@@ -660,7 +654,7 @@ void* DireccionNodoShared(Listas L, key_t cl)
         p = next(L->MemList, p);
     }
 
-    return NULL;    // no encontrado
+    return NULL;
 }
 
 
@@ -689,16 +683,13 @@ void MList_print(enum tAllocL tipo,Listas L) {
             strftime(fecha, sizeof(fecha), "%Y-%m-%d %H:%M:%S", tminfo);
             char info[1024];
 
-            // Información según el tipo de bloque
             if (item->alloc == MAPPED) {
-                // Imprimir el nombre del fichero
                 snprintf(info, sizeof(info), "%s", item->file_name);
 
             } else if (item->alloc == SHARED) {
-                // Imprimir la clave SMB
                 snprintf(info, sizeof(info), "%d", item->smb_key);
 
-            } else { // MALLOC
+            } else {
                 snprintf(info, sizeof(info), "--");
             }
 
