@@ -113,7 +113,7 @@ int Cmd_ReadFile (char *trozos[],int ntrozos,Listas L){
         return 1;
     }
     p=CadenatoPointer(trozos[1]);  
-    if(p==NULL){
+    if(p==NULL || !PerteneceMemList(p, L)){
         fprintf(stderr,"Dirección inválida: %s\n", trozos[1]);
         return 1;
     }
@@ -136,11 +136,11 @@ int Cmd_WriteFile(char *trozos[], int ntrozos, Listas L) {
     size_t cont;  
     ssize_t n;
     if (ntrozos<4){
-        printf("Uso: writefile <df> <puntero> <num_bytes>\n");
+        printf("Uso: writefile <file> <addr> <num_bytes>\n");
         return 1;
     }
     p=CadenatoPointer(trozos[1]);
-    if(p==NULL){
+    if(p==NULL || !PerteneceMemList(p, L)){
         fprintf(stderr,"Dirección inválida: %s\n", trozos[1]);
         return 1;
     }  
@@ -171,7 +171,7 @@ int Cmd_Read(char *trozos[], int ntrozos, Listas L)
         return 1;
     }
     void *p = CadenatoPointer(trozos[1]);
-    if (p == NULL) {
+    if (p == NULL || !PerteneceMemList(p, L)) {
         fprintf(stderr, "Dirección inválida: %s\n", trozos[1]);
         return 1;
     }
@@ -206,13 +206,13 @@ int Cmd_Write(char *trozos[], int ntrozos, Listas L)
     }
 
     void *p = CadenatoPointer(trozos[1]);
-    if (p == NULL) {
+    if (p == NULL || !PerteneceMemList(p, L)) {
         fprintf(stderr, "Dirección inválida: %s\n", trozos[1]);
         return 1;
     }
 
     size_t cont = (size_t) atoll(trozos[2]);
-    if (cont == 0) {
+    if (cont <= 0) {
         fprintf(stderr, "Número de bytes inválido: %s\n", trozos[2]);
         return 1;
     }
@@ -270,6 +270,10 @@ int Cmd_Memfill(char *trozos[], int ntrozos, Listas L) {
         fprintf(stderr, "Dirección inválida: %s\n", trozos[0]);
         return 1;
     }
+    if( !PerteneceMemList(p, L)) {
+        fprintf(stderr,"ERROR: La dirección %p no pertenece a la memoria del shell\n",p);
+        return 1;
+    }
 
     size_t cont = (size_t) atoll(trozos[1]);
     if (cont <=0) {
@@ -293,20 +297,17 @@ int Cmd_memdump(char *trozos[], int NumTrozos, Listas L) {
         fprintf(stderr, "Dirección inválida: %s\n", trozos[0]);
         return 1;
     }
-
     unsigned char *address = (unsigned char *) addr_val;
-
-    if(address == NULL) {
-        fprintf(stderr, "Dirección inválida: %s\n", trozos[0]);
+    if (!PerteneceMemList(address, L)) {
+        fprintf(stderr,"ERROR: La dirección %p no pertenece a la memoria del shell\n",address);
         return 1;
     }
-    int bytes = atoi(trozos[1]);
-    if (bytes < 0) {
-        fprintf(stderr, "Número de bytes inválido: %s\n", trozos[1]);
-        return 1;
+    int bytes = atoi(trozos[1]); 
+    if (bytes < 0) { 
+        fprintf(stderr, "Número de bytes inválido: %s\n", trozos[1]); 
+        return 1; 
     }
     int i = 0, j = 0;
-
     while (i <= bytes) {
         for (int k = 0; k < 16 && i <= bytes; i++, k++) {
             unsigned char c = address[i];

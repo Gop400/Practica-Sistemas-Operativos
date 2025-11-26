@@ -733,3 +733,16 @@ void Aux_mem_blocks(Listas L) {
     printf("\n");
     MList_print(MAPPED, L);
 }
+bool PerteneceMemList(void *addr, Listas L) {
+    tPos p = first(L->MemList);
+
+    while (p != LNULL) {
+        tItemM item = (tItemM) getItem(L->MemList, p);
+        if (addr >= item->address && addr < (item->address + item->size)) {
+            return true;  
+        }
+        p = next(L->MemList, p);
+    }
+
+    return false; 
+}

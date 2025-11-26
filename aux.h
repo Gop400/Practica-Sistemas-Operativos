@@ -63,6 +63,7 @@ void Aux_mem_blocks(Listas L) ;
 
 
 void Do_pmap (void);
+bool PerteneceMemList(void *addr, Listas L);
 
 char LetraTF (mode_t m);
 #endif //AUX_H
