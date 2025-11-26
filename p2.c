@@ -50,14 +50,14 @@ int Cmd_Free(char *trozos[], int ntrozos, Listas L) {
                     break;
                 case SHARED:
                     if (shmdt(CadenatoPointer(trozos[0])) == -1)
-                        perror("shmdt");
+                        fprintf(stderr, "Error al liberar memoria compartida: %s\n", strerror(errno));
                     else
                         printf("Bloque shared detach en %p (clave=%d)\n",
                                CadenatoPointer(trozos[0]), item->smb_key);
                     break;
                 case MAPPED:
                     if (munmap(CadenatoPointer(trozos[0]), item->size) == -1)
-                        perror("munmap");
+                        fprintf(stderr, "Error al liberar memoria mapeada: %s\n", strerror(errno));
                     else
                         printf("Bloque mapped desmapeado en %p archivo=%s\n",
                                CadenatoPointer(trozos[0]), item->file_name);
@@ -144,12 +144,12 @@ int Cmd_WriteFile(char *trozos[], int ntrozos, Listas L) {
         fprintf(stderr,"Dirección inválida: %s\n", trozos[1]);
         return 1;
     }  
-    cont=(size_t) atoll(trozos[2]);
-    if(cont==0){
+    long long aux=atoll(trozos[2]);
+    if(aux<=0){
         fprintf(stderr,"Número de bytes inválido: %s\n", trozos[2]);
         return 1;
     }
-
+    cont = (size_t) aux;
     if ((n=EscribirFichero (trozos[0],p,cont))==-1){
         fprintf (stderr,"Imposible escribir fichero: %s\n",strerror(errno));
         return 1;
@@ -176,11 +176,12 @@ int Cmd_Read(char *trozos[], int ntrozos, Listas L)
         return 1;
     }
 
-    size_t cont = (size_t) atoll(trozos[2]);
-    if (cont == 0) {
+    long long aux=atoll(trozos[2]);
+    if (aux <= 0) {
         fprintf(stderr, "Número de bytes inválido: %s\n", trozos[2]);
         return 1;
     }
+    size_t cont = (size_t) aux;
 
     ssize_t n = LeerDesdeDescriptor(df, p, cont);
     if (n == -1) {
@@ -210,12 +211,14 @@ int Cmd_Write(char *trozos[], int ntrozos, Listas L)
         fprintf(stderr, "Dirección inválida: %s\n", trozos[1]);
         return 1;
     }
+    long long aux = atoll(trozos[2]);
 
-    size_t cont = (size_t) atoll(trozos[2]);
-    if (cont <= 0) {
+
+    if (aux <= 0) {
         fprintf(stderr, "Número de bytes inválido: %s\n", trozos[2]);
         return 1;
     }
+    size_t cont = (size_t) aux;
 
     ssize_t n = EscribirDesdeDescriptor(df, p, cont);
     if (n == -1) {
