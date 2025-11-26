@@ -2,7 +2,8 @@
 #define AUX_H
 #include "list.h"
 #include "p0.h"
-#include "p1.h"
+#include "p2.h"
+
 struct cmd {
     char *name;
     int (*func)(char *trozos[],int ntoken,Listas L);
@@ -16,19 +17,11 @@ void Addhistoric(char cadena[],tList *l);
 int ProcesarEntrada(char *trozos[],int ntoken,Listas L);
 
 void CrearCharModos(char *modos,int filemodo);
-void PrintDefaultOpen();
+void PrintOpenFiles(tList F);
 char *NombreDescriptor(int df,Listas L);
 void AnadirAFicherosAbiertos(tList *F,int fd, int modo, const char *nombre);
-void PrintOpenFiles(tList F);
-int aux_remove_rec(const char *path);
-char * ConvierteModo (mode_t m, char *permisos);
 void initOpenList(Listas L);
-void FreeHistoricList(tList *l);
-void FreeOpenFilesList(tList *l1);
-char* GetDirParamsString(DirFormat f, LinkOption l, HiddenOption h, RecursionOption r);
 void Recursiva (int n);
-
-
 void LlenarMemoria (void *p, size_t cont, unsigned char byte);
 void * ObtenerMemoriaShmget (key_t clave, size_t tam, Listas L);
 void do_SharedCreate (char *tr[], Listas L);

@@ -1,14 +1,10 @@
 #define TAMANO 1024
 
 #include "aux.h"
-#include "p0.h"
-#include "p1.h"
-#include "p2.h"
-
 
 int externia, externia2, externia3;
 int externa=1,externb=2, externc=3;
-struct cmd cmds[]={{"malloc",Cmd_malloc},{"memdump", Cmd_memdump},{"memfill",Cmd_Memfill},{"mmap", Cmd_Mmap},{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dir",cmd_dir},{"setdirparams",setdirparams},{"lseek",Cmd_lseek},{"writestr",Cmd_writestr},{"delrec",Cmd_delrec},{"erase",Cmd_erase},{"dup",Cmd_dup},{"listopen",listopen},{"create",Cmd_create},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic},{"help",help},{"date",date},{"authors",authors},{"pid",pid},{"infosys",infosys},{"getcwd",cmd_getcwd},{"cd",cmd_cd},{"hour",hour}};
+struct cmd cmds[]={{"malloc",Cmd_malloc},{"memdump", Cmd_memdump},{"memfill",Cmd_Memfill},{"mmap", Cmd_Mmap},{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dup",Cmd_dup},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -124,140 +120,11 @@ void PrintOpenFiles(tList F) {
     }
 }
 
-
-int aux_remove_rec(const char *path) {
-    struct stat info;
-
-    if (stat(path, &info) == -1) {
-        fprintf(stderr, "No se ha encontrado el archivo o directorio %s: %s\n", path, strerror(errno));
-        return 1;
-    }
-
-    if (S_ISDIR(info.st_mode)) {
-        // Es un directorio: abrimos su contenido
-        DIR *dir = opendir(path);
-        if (!dir) {
-            fprintf(stderr, "Error al abrir directorio %s: %s\n", path, strerror(errno));
-            return 1;
-        }
-
-        struct dirent *entry;
-        int ret = 0;
-
-        while ((entry = readdir(dir)) != NULL) {
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0){
-                continue;
-            }//IGNORA LAS ENTRADAS . Y .. QUE EL SISTEMDA DE ARCHIVOS INCLUYE SIEMPRE
-
-
-            char sub_path[1024];
-            snprintf(sub_path, sizeof(sub_path), "%s/%s", path, entry->d_name);//Crea una cadena de texto pero con un límite de tamaño, para evitar overflow y queda almacenada en sub_path
-            // Llamada recursiva
-            if (aux_remove_rec(sub_path) != 0)//si da error en la llamada recursiva devuelve 1
-                ret = 1;
-        }
-        closedir(dir);
-
-        // Borramos el directorio vacío ahora
-        if (rmdir(path) == -1) {
-            fprintf(stderr, "Error al eliminar directorio %s: %s\n", path, strerror(errno));
-            ret = 1;
-        } else {
-            printf("Directorio eliminado: %s\n", path);
-        }
-
-        return ret;
-    } else if (S_ISREG(info.st_mode)) {
-        // Es un archivo normal
-        if (unlink(path) == -1) {
-            fprintf(stderr, "Error al eliminar fichero %s: %s\n", path, strerror(errno));
-            return 1;
-        } else {
-            printf("Fichero eliminado: %s\n", path);
-            return 0;
-        }
-    }
-    return 1;
-}
-char * ConvierteModo (mode_t m, char *permisos)
-{
-    strcpy (permisos,"---------- ");
-    
-    permisos[0]=LetraTF(m);
-    if (m&S_IRUSR) permisos[1]='r';    /*propietario*/
-    if (m&S_IWUSR) permisos[2]='w';
-    if (m&S_IXUSR) permisos[3]='x';
-    if (m&S_IRGRP) permisos[4]='r';    /*grupo*/
-    if (m&S_IWGRP) permisos[5]='w';
-    if (m&S_IXGRP) permisos[6]='x';
-    if (m&S_IROTH) permisos[7]='r';    /*resto*/
-    if (m&S_IWOTH) permisos[8]='w';
-    if (m&S_IXOTH) permisos[9]='x';
-    if (m&S_ISUID) permisos[3]='s';    /*setuid, setgid y stickybit*/
-    if (m&S_ISGID) permisos[6]='s';
-    if (m&S_ISVTX) permisos[9]='t';
-    
-    return permisos;
-}
-
-char LetraTF (mode_t m)
-{
-     switch (m&S_IFMT) { /*and bit a bit con los bits de formato,0170000 */
-        case S_IFSOCK: return 's'; /*socket */
-        case S_IFLNK: return 'l'; /*symbolic link*/
-        case S_IFREG: return '-'; /* fichero normal*/
-        case S_IFBLK: return 'b'; /*block device*/
-        case S_IFDIR: return 'd'; /*directorio */ 
-        case S_IFCHR: return 'c'; /*char device*/
-        case S_IFIFO: return 'p'; /*pipe*/
-        default: return '?'; /*desconocido, no deberia aparecer*/
-     }
-}
 void initOpenList(Listas L){
     AnadirAFicherosAbiertos(&L->OpenFilesList,0,O_RDWR,"entrada estandar");
     AnadirAFicherosAbiertos(&L->OpenFilesList,1,O_RDWR,"salida estandar");
     AnadirAFicherosAbiertos(&L->OpenFilesList,2,O_RDWR,"error estandar");
 }
-
-
-char* GetDirParamsString(DirFormat f, LinkOption l, HiddenOption h, RecursionOption r) {
-    const char *format, *link, *hid, *rec;
-    
-
-    // Convertir cada enum a texto (en la misma función)
-    switch (f) {
-        case SHORT_FORMAT: format = "corto"; break;
-        case LONG_FORMAT:  format = "largo"; break;
-        default: format = "unknown";
-    }
-
-    switch (l) {
-        case NO_LINK: link = "sin link"; break;
-        case LINK:    link = "con link"; break;
-        default: link = "unknown";
-    }
-
-    switch (h) {
-        case NO_HID: hid = "con archivos ocultos"; break;
-        case HID:    hid = "sin archivos ocultos"; break;
-        default: hid = "unknown";
-    }
-
-    switch (r) {
-        case NO_REC: rec = "no recursivo"; break;
-        case RECA:   rec = "recursivo(despues)"; break;
-        case RECB:   rec = "recursivo(antes)"; break;
-        default: rec = "unknown";
-    }
-
-    // Reservar memoria para la cadena final
-    char *result = malloc(128);
-    if (!result) return NULL;
-
-    snprintf(result, 128, "Listado %s %s %s %s", format, link, hid, rec);
-    return result; // llamador debe hacer free(result)
-}
-
 
 void Recursiva (int n)
 {
