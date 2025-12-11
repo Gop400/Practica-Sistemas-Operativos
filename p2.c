@@ -1,7 +1,7 @@
 #include "p2.h"
 #include "aux.h"
 
-int Cmd_shared(char *trozos[], int ntoken, Listas L) {
+int Cmd_shared(char *trozos[], int ntoken, Listas L, char *env[]) {
     if (ntoken == 1) { 
         MList_print(SHARED,L);
         return 0;
@@ -29,7 +29,7 @@ int Cmd_shared(char *trozos[], int ntoken, Listas L) {
     return 1;
 }
 
-int Cmd_Free(char *trozos[], int ntrozos, Listas L) {
+int Cmd_Free(char *trozos[], int ntrozos, Listas L, char *env[]) {
     tList lista = L->MemList;
     tPos p = first(lista);
     if(ntrozos != 2) {
@@ -75,7 +75,7 @@ int Cmd_Free(char *trozos[], int ntrozos, Listas L) {
     return 1;
 }
 
-int Cmd_Memory(char *trozos[], int ntrozos, Listas L) {
+int Cmd_Memory(char *trozos[], int ntrozos, Listas L, char *env[]) {
     if (ntrozos != 2) {
         printf("Uso: memory -funcs|-vars|-blocks|-all|-pmap\n");
         return 1;
@@ -104,7 +104,7 @@ int Cmd_Memory(char *trozos[], int ntrozos, Listas L) {
     return 1;
 }
 
-int Cmd_ReadFile (char *trozos[],int ntrozos,Listas L){
+int Cmd_ReadFile (char *trozos[],int ntrozos,Listas L, char *env[]){
     void *p;
     size_t cont;  
     ssize_t n;
@@ -131,7 +131,7 @@ int Cmd_ReadFile (char *trozos[],int ntrozos,Listas L){
     return 0;
 }
 
-int Cmd_WriteFile(char *trozos[], int ntrozos, Listas L) {
+int Cmd_WriteFile(char *trozos[], int ntrozos, Listas L, char *env[]) {
     void *p;
     size_t cont;  
     ssize_t n;
@@ -158,7 +158,7 @@ int Cmd_WriteFile(char *trozos[], int ntrozos, Listas L) {
     return 0;
 }
 
-int Cmd_Read(char *trozos[], int ntrozos, Listas L)
+int Cmd_Read(char *trozos[], int ntrozos, Listas L, char *env[])
 {
     int df;
     if (ntrozos < 4){
@@ -193,7 +193,7 @@ int Cmd_Read(char *trozos[], int ntrozos, Listas L)
     return 0;
 }
 
-int Cmd_Write(char *trozos[], int ntrozos, Listas L)
+int Cmd_Write(char *trozos[], int ntrozos, Listas L, char *env[])
 {
     if (ntrozos < 4) {
         fprintf(stderr, "Uso: write <df> <addr> <num_bytes>\n");
@@ -230,7 +230,7 @@ int Cmd_Write(char *trozos[], int ntrozos, Listas L)
     return 0;
 }
 
-int Cmd_recurse(char *trozos[], int ntrozos, Listas L) {
+int Cmd_recurse(char *trozos[], int ntrozos, Listas L, char *env[]) {
     if (ntrozos != 2) {
         printf("Uso: recurse <n>\n");
         return 1;
@@ -244,7 +244,7 @@ int Cmd_recurse(char *trozos[], int ntrozos, Listas L) {
     return 0;
 }
 
-int Cmd_Mmap(char *trozos[], int ntrozos, Listas L)
+int Cmd_Mmap(char *trozos[], int ntrozos, Listas L, char *env[])
 {
    if(ntrozos==1){
          MList_print(MAPPED,L);
@@ -262,7 +262,7 @@ int Cmd_Mmap(char *trozos[], int ntrozos, Listas L)
    return 0;
 }
 
-int Cmd_Memfill(char *trozos[], int ntrozos, Listas L) {
+int Cmd_Memfill(char *trozos[], int ntrozos, Listas L, char *env[]) {
     if (ntrozos != 4) {
         printf("Uso: memfill <addr> <num_bytes> <byte_value>\n");
         return 1;
@@ -290,7 +290,7 @@ int Cmd_Memfill(char *trozos[], int ntrozos, Listas L) {
     printf("Memoria en %p llenada con %zu bytes del valor 0x%02x\n", p, cont, byte);
     return 0;
 }
-int Cmd_memdump(char *trozos[], int NumTrozos, Listas L) {
+int Cmd_memdump(char *trozos[], int NumTrozos, Listas L, char *env[]) {
     if (NumTrozos < 3) {
         printf("Uso: memdump <addr> <num_bytes>\n");
         return 1  ;
@@ -344,7 +344,7 @@ int Cmd_memdump(char *trozos[], int NumTrozos, Listas L) {
 }
 
 
-int Cmd_malloc(char *trozos[], int ntrozos, Listas L) {
+int Cmd_malloc(char *trozos[], int ntrozos, Listas L, char *env[]) {
     if (ntrozos == 1) 
     {
         MList_print(MALLOC, L);

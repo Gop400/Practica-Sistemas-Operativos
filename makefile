@@ -1,15 +1,14 @@
-
-
 CFLAGS = -Wall -g
 CC = gcc
 
-
-p2: main.o list.o p0.o aux.o p2.o
-	$(CC) $(CFLAGS) -o p2 main.o list.o p0.o aux.o p2.o
+p3: main.o list.o p0.o aux.o p2.o p3.o
+	$(CC) $(CFLAGS) -o p3 main.o list.o p0.o aux.o p2.o p3.o
 
 main.o: main.c
 	$(CC) $(CFLAGS) -c main.c
 
+p3.o: p3.c
+	$(CC) $(CFLAGS) -c p3.c
 
 list.o: list.c
 	$(CC) $(CFLAGS) -c list.c
@@ -23,8 +22,8 @@ p2.o: p2.c
 aux.o: aux.c
 	$(CC) $(CFLAGS) -c aux.c
 
-valgrind: p2
-	valgrind --leak-check=full ./p2
+valgrind: p3
+	valgrind --leak-check=full ./p3
 
 clean:
-	rm -f p2 main.o list.o p0.o aux.o p2.o
+	rm -f p3 main.o list.o p0.o aux.o p2.o p3.o

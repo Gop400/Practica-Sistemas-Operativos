@@ -41,7 +41,7 @@ void PrintNHistoric(tList l,long n) {
         }
     };
 }
-void Ncmd(long n,Listas L) {
+void Ncmd(long n,Listas L, char *env[]) {
     char comando[1024];
     int ntrozos_aux=0;
     char *args[64];
@@ -64,14 +64,14 @@ void Ncmd(long n,Listas L) {
         strcpy(comando,item->comando);
         comando[sizeof(comando) - 1] = '\0'; // asegurar terminador
         ntrozos_aux = TrocearCadena(comando, args);
-        ProcesarEntrada(args,ntrozos_aux,L);
+        ProcesarEntrada(args,ntrozos_aux,L, env);
         return ;
     }
     perror("Elemento n mayor que ultimo en la lista");
     return;
 }
 
-int historic(char *trozos[],int ntrozos,Listas L) {
+int historic(char *trozos[],int ntrozos,Listas L, char *env[]) {
     char *endnptr;
     long n;
     if(ntrozos==2) {
@@ -100,7 +100,7 @@ int historic(char *trozos[],int ntrozos,Listas L) {
         n=strtol(trozos[0],&endnptr,10);
         if(endnptr!=trozos[0] && n>=0) {
             RemoveHistoricElement(&L->HistoricList,last(L->HistoricList));
-            Ncmd(n,L);
+            Ncmd(n,L, env);
             return 0;
         }
         perror("Error,valor -N invalido");
@@ -113,7 +113,7 @@ int historic(char *trozos[],int ntrozos,Listas L) {
 }
 
 
-int Cmd_open (char * trozos[],int ntrozos,Listas L){
+int Cmd_open (char * trozos[],int ntrozos,Listas L, char *env[]){
     int i,df, mode=0;
     
     if (trozos[0]==NULL && ntrozos==1) { /*no hay parametro*/
@@ -148,7 +148,7 @@ int Cmd_open (char * trozos[],int ntrozos,Listas L){
 }
 
 
-int Cmd_close (char *trozos[],int ntrozos,Listas L){ 
+int Cmd_close (char *trozos[],int ntrozos,Listas L, char *env[]){ 
     int df;
     if (ntrozos<2){
         fprintf(stderr,"Introduzca un descriptor de fichero a cerrar\n");
@@ -185,7 +185,7 @@ int Cmd_close (char *trozos[],int ntrozos,Listas L){
     return 1;
 }
 
-int Cmd_dup (char *trozos[],int ntrozos,Listas L)
+int Cmd_dup (char *trozos[],int ntrozos,Listas L, char *env[])
 { 
     int df, duplicado;
     char aux[64],*p;

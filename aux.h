@@ -3,10 +3,15 @@
 #include "list.h"
 #include "p0.h"
 #include "p2.h"
+#include "p3.h"
+struct SEN {
+    char *nombre;
+    int senal;
+};
 
 struct cmd {
     char *name;
-    int (*func)(char *trozos[],int ntoken,Listas L);
+    int (*func)(char *trozos[],int ntoken,Listas L, char *env[]);
 };
 extern struct cmd cmds[];
 
@@ -14,7 +19,7 @@ int TrocearCadena(char * cadena, char * trozos[]);
 
 void Addhistoric(char cadena[],tList *l);
 
-int ProcesarEntrada(char *trozos[],int ntoken,Listas L);
+int ProcesarEntrada(char *trozos[],int ntoken,Listas L, char *env[]);
 
 void CrearCharModos(char *modos,int filemodo);
 void PrintOpenFiles(tList F);
@@ -59,4 +64,7 @@ void Do_pmap (void);
 bool PerteneceMemList(void *addr, Listas L);
 
 char LetraTF (mode_t m);
+int BuscarVariable (char * var, char *e[]);
+void Aux_processos_show(char **env, char *nombre_entorno);
+int CambiarVariable(char * var, char * valor, char *e[]) ;
 #endif //AUX_H

@@ -1,12 +1,12 @@
-#define TAMANO 1024
-
+#define TAMANO 128
+#define MAXVAR 1024
 #include "aux.h"
 
 
 
 int externia, externia2, externia3;
 int externa=1,externb=2, externc=3;
-struct cmd cmds[]={{"malloc",Cmd_malloc},{"memdump", Cmd_memdump},{"memfill",Cmd_Memfill},{"mmap", Cmd_Mmap},{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dup",Cmd_dup},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic}};
+struct cmd cmds[]={{"showenv",Cmd_showenv},{"envvar",Cmd_envvar},{"uid",Cmd_uid},{"malloc",Cmd_malloc},{"memdump", Cmd_memdump},{"memfill",Cmd_Memfill},{"mmap", Cmd_Mmap},{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dup",Cmd_dup},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -20,11 +20,11 @@ int TrocearCadena(char * cadena, char * trozos[])
 
 
 
-int ProcesarEntrada(char *trozos[],int ntrozos,Listas L) {
+int ProcesarEntrada(char *trozos[],int ntrozos,Listas L, char *env[]) {
     int i;
     for(i=0;cmds[i].name!=NULL;i++) {
         if((strcmp(cmds[i].name,trozos[0]))==0) {
-            cmds[i].func(trozos+1,ntrozos,L);
+            cmds[i].func(trozos+1,ntrozos,L, env);
             return 0;
         }
     }if(strcmp(trozos[0],"quit")==0 || strcmp(trozos[0],"exit")==0 ||strcmp(trozos[0],"bye")==0) {
@@ -614,4 +614,143 @@ bool PerteneceMemList(void *addr, Listas L) {
     }
 
     return false; 
+}
+
+
+
+int BuscarVariable (char * var, char *e[])  /*busca una variable en el entorno que se le pasa como parÃ¡metro*/
+{                                           /*devuelve la posicion de la variable en el entorno, -1 si no existe*/
+  int pos=0;
+  char aux[MAXVAR];
+  
+  strcpy (aux,var);
+  strcat (aux,"=");
+  
+  while (e[pos]!=NULL)
+    if (!strncmp(e[pos],aux,strlen(aux)))
+      return (pos);
+    else 
+      pos++;
+  errno=ENOENT;   /*no hay tal variable*/
+  return(-1);
+}
+
+
+int CambiarVariable(char * var, char * valor, char *e[]) /*cambia una variable en el entorno que se le pasa como parÃ¡metro*/
+{                                                        /*lo hace directamente, no usa putenv*/
+  int pos;
+  char *aux;
+   
+  if ((pos=BuscarVariable(var,e))==-1)
+    return(-1);
+ 
+  if ((aux=(char *)malloc(strlen(var)+strlen(valor)+2))==NULL)
+	return -1;
+  strcpy(aux,var);
+  strcat(aux,"=");
+  strcat(aux,valor);
+  e[pos]=aux;
+  return (pos);
+}
+
+/*las siguientes funciones nos permiten obtener el nombre de una senal a partir
+del nÃºmero y viceversa */
+static struct SEN sigstrnum[]={   
+	{"HUP", SIGHUP},
+	{"INT", SIGINT},
+	{"QUIT", SIGQUIT},
+	{"ILL", SIGILL}, 
+	{"TRAP", SIGTRAP},
+	{"ABRT", SIGABRT},
+	{"IOT", SIGIOT},
+	{"BUS", SIGBUS},
+	{"FPE", SIGFPE},
+	{"KILL", SIGKILL},
+	{"USR1", SIGUSR1},
+	{"SEGV", SIGSEGV},
+	{"USR2", SIGUSR2}, 
+	{"PIPE", SIGPIPE},
+	{"ALRM", SIGALRM},
+	{"TERM", SIGTERM},
+	{"CHLD", SIGCHLD},
+	{"CONT", SIGCONT},
+	{"STOP", SIGSTOP},
+	{"TSTP", SIGTSTP}, 
+	{"TTIN", SIGTTIN},
+	{"TTOU", SIGTTOU},
+	{"URG", SIGURG},
+	{"XCPU", SIGXCPU},
+	{"XFSZ", SIGXFSZ},
+	{"VTALRM", SIGVTALRM},
+	{"PROF", SIGPROF},
+	{"WINCH", SIGWINCH}, 
+	{"IO", SIGIO},
+	{"SYS", SIGSYS},
+/*senales que no hay en todas partes*/
+#ifdef SIGPOLL
+	{"POLL", SIGPOLL},
+#endif
+#ifdef SIGPWR
+	{"PWR", SIGPWR},
+#endif
+#ifdef SIGEMT
+	{"EMT", SIGEMT},
+#endif
+#ifdef SIGINFO
+	{"INFO", SIGINFO},
+#endif
+#ifdef SIGSTKFLT
+	{"STKFLT", SIGSTKFLT},
+#endif
+#ifdef SIGCLD
+	{"CLD", SIGCLD},
+#endif
+#ifdef SIGLOST
+	{"LOST", SIGLOST},
+#endif
+#ifdef SIGCANCEL
+	{"CANCEL", SIGCANCEL},
+#endif
+#ifdef SIGTHAW
+	{"THAW", SIGTHAW},
+#endif
+#ifdef SIGFREEZE
+	{"FREEZE", SIGFREEZE},
+#endif
+#ifdef SIGLWP
+	{"LWP", SIGLWP},
+#endif
+#ifdef SIGWAITING
+	{"WAITING", SIGWAITING},
+#endif
+ 	{NULL,-1},
+	};    /*fin array sigstrnum */
+
+
+int ValorSenal(char * sen)  /*devuelve el numero de senial a partir del nombre*/ 
+{ 
+  int i;
+  for (i=0; sigstrnum[i].nombre!=NULL; i++)
+  	if (!strcmp(sen, sigstrnum[i].nombre))
+		return sigstrnum[i].senal;
+  return -1;
+}
+
+
+char *NombreSenal(int sen)  /*devuelve el nombre senal a partir de la senal*/ 
+{			/* para sitios donde no hay sig2str*/
+ int i;
+  for (i=0; sigstrnum[i].nombre!=NULL; i++)
+  	if (sen==sigstrnum[i].senal)
+		return sigstrnum[i].nombre;
+ return ("SIGUNKNOWN");
+}
+void Aux_processos_show(char **env, char *nombre_entorno) {
+    int i = 0;
+
+    while (env[i] != NULL) {
+        printf("%p->%s[%d]=(%p) %s\n", &env[i],
+               nombre_entorno, i, env[i], env[i]);
+        i++;
+    }
 }

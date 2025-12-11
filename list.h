@@ -46,7 +46,15 @@ struct structOpenFile {
     int modos;
     off_t offset;
 };
+struct structProc {
+    pid_t pid; // PID
+    time_t time; // Fecha de lanzamiento
+    //enum tStatusL status; // Estado
+    int *wstatus; // WStatus
+    char * command; // Command Line
+};
 typedef void* tItem;
+typedef struct structProc* tItemP;
 typedef struct structHist* tItemH;
 typedef struct structOpenFile* tItemF;
 typedef struct structMem* tItemM;
@@ -61,6 +69,7 @@ struct structListas{
     tList HistoricList;
     tList OpenFilesList;
     tList MemList;
+    tList ProcList;
 
 };
 typedef struct structListas* Listas;
