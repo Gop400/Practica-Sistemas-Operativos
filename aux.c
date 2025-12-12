@@ -6,7 +6,7 @@
 
 int externia, externia2, externia3;
 int externa=1,externb=2, externc=3;
-struct cmd cmds[]={{"exec",Cmd_exec},{"fork",Cmd_fork},{"showenv",Cmd_showenv},{"envvar",Cmd_envvar},{"uid",Cmd_uid},{NULL,NULL}};
+struct cmd cmds[]={{"jobs", jobs},{"deljobs", deljobs},{"exec",Cmd_exec},{"fork",Cmd_fork},{"showenv",Cmd_showenv},{"envvar",Cmd_envvar},{"uid",Cmd_uid},{NULL,NULL}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -30,7 +30,7 @@ int ProcesarEntrada(char *trozos[],int ntrozos,Listas L, char *env[]) {
     }if(strcmp(trozos[0],"quit")==0 || strcmp(trozos[0],"exit")==0 ||strcmp(trozos[0],"bye")==0) {
         return 1;
     }
-    perror("comando invalido");
+    ejecutarComando(trozos,ntrozos,L);
     return 0;
 }
 
