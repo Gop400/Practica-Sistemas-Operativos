@@ -105,6 +105,18 @@ tItem getItem(tList l1,tPos p) {
     return p->item;
 }
 
+void RemoveProcElement(tList *l, tPos p) {
+    if (isEmptyList(*l) || p == LNULL) return;
+
+    tItemP item = (tItemP)getItem(*l, p);
+    if (item != NULL) {
+        if (item->command) free(item->command);   // liberar cadena
+        if (item->wstatus) free(item->wstatus);   // liberar wstatus
+        free(item);                               // liberar estructura
+    }
+    RemoveElement(l, p);
+}
+
 void deleteList(tList *l1,char type) {
 
     if(!isEmptyList(*l1)) {
@@ -122,6 +134,10 @@ void deleteList(tList *l1,char type) {
             case 'M':
                 while (!isEmptyList(*l1)) {
                     RemoveMemElement(l1, *l1);
+                }
+            case 'P':
+                while (!isEmptyList(*l1)) {
+                    RemoveProcElement(l1, *l1);
                 }
             default:
                 while (!isEmptyList(*l1)) {
@@ -160,6 +176,11 @@ void RemoveHistoricElement(tList *l, tPos p) {
 void DeleteHistoricList(tList *l) {
     while (!isEmptyList(*l)) {
         RemoveHistoricElement(l, *l);
+    }
+}
+void DeleteProcList(tList *l) {
+    while (!isEmptyList(*l)) {
+        RemoveProcElement(l, *l);
     }
 }
 

@@ -6,7 +6,7 @@
 
 int externia, externia2, externia3;
 int externa=1,externb=2, externc=3;
-struct cmd cmds[]={{"showenv",Cmd_showenv},{"envvar",Cmd_envvar},{"uid",Cmd_uid},{"malloc",Cmd_malloc},{"memdump", Cmd_memdump},{"memfill",Cmd_Memfill},{"mmap", Cmd_Mmap},{"recurse", Cmd_recurse},{"shared",Cmd_shared},{"free",Cmd_Free},{"mem",Cmd_Memory},{"readfile",Cmd_ReadFile},{"writefile",Cmd_WriteFile},{"read",Cmd_Read},{"write",Cmd_Write},{"dup",Cmd_dup},{"close",Cmd_close},{"open",Cmd_open},{"historic",historic}};
+struct cmd cmds[]={{"exec",Cmd_exec},{"fork",Cmd_fork},{"showenv",Cmd_showenv},{"envvar",Cmd_envvar},{"uid",Cmd_uid},{NULL,NULL}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;

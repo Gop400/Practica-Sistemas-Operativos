@@ -1,8 +1,7 @@
 #ifndef AUX_H
 #define AUX_H
 #include "list.h"
-#include "p0.h"
-#include "p2.h"
+
 #include "p3.h"
 struct SEN {
     char *nombre;
@@ -67,4 +66,50 @@ char LetraTF (mode_t m);
 int BuscarVariable (char * var, char *e[]);
 void Aux_processos_show(char **env, char *nombre_entorno);
 int CambiarVariable(char * var, char * valor, char *e[]) ;
+int Aux_procesos_progspec(int ntrozos, char **trozos, char **newenv);
+
+/*senales que no hay en todas partes*/
+#ifdef SIGPOLL
+	{"POLL", SIGPOLL},
+#endif
+#ifdef SIGPWR
+	{"PWR", SIGPWR},
+#endif
+#ifdef SIGEMT
+	{"EMT", SIGEMT},
+#endif
+#ifdef SIGINFO
+	{"INFO", SIGINFO},
+#endif
+#ifdef SIGSTKFLT
+	{"STKFLT", SIGSTKFLT},
+#endif
+#ifdef SIGCLD
+	{"CLD", SIGCLD},
+#endif
+#ifdef SIGLOST
+	{"LOST", SIGLOST},
+#endif
+#ifdef SIGCANCEL
+	{"CANCEL", SIGCANCEL},
+#endif
+#ifdef SIGTHAW
+	{"THAW", SIGTHAW},
+#endif
+#ifdef SIGFREEZE
+	{"FREEZE", SIGFREEZE},
+#endif
+#ifdef SIGLWP
+	{"LWP", SIGLWP},
+#endif
+#ifdef SIGWAITING
+	{"WAITING", SIGWAITING},
+#endif
+ 	{NULL,-1},
+	};    /*fin array sigstrnum */
+
+
+int ValorSenal(char * sen);
+
+char *NombreSenal(int sen);
 #endif //AUX_H

@@ -5,8 +5,7 @@
  *email2:samuel.mouriño@udc.es
  */
 #define size_cadena 1024
-#include "p0.h"
-#include "p2.h"
+
 #include "p3.h"
 #include "aux.h"
 

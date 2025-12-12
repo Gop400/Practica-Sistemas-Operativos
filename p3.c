@@ -141,6 +141,197 @@ int Cmd_showenv(char *trozos[],int ntrozos, Listas L, char *env[]) {
     }
     fprintf(stderr, "Uso: showenv [-environ|-addr]\n");
     return 1;
-
 }
 
+int Cmd_fork (char *trozos[], int ntrozos, Listas L, char *env[])
+{
+	pid_t pid;
+    pid=fork();
+    if(pid== -1){
+        perror("Error en fork");
+        return 1;
+    }
+	if (pid==0){
+		printf ("ejecutando proceso %d\n", getpid());
+        exit(0);
+	}
+    if(waitpid (pid,NULL,0)==-1){
+        perror ("Error en waitpid");
+        return 1;
+    }
+    return 0;
+}
+int Cmd_exec(char *trozos[], int ntrozos, Listas L, char *env[])
+{
+    int i, priority = -99999; 
+    int has_priority = 0;
+    char *args[256];
+    int nargs = 0;
+
+    if (ntrozos < 2) {
+        fprintf(stderr, "Uso: exec progspec\n");
+        return 1;
+    }
+
+    /* --- 1. Parsear los argumentos y detectar @pri --- */
+    for (i = 0; i < ntrozos && trozos[i] != NULL; i++) {
+
+        /* detectar @pri */
+        if (trozos[i][0] == '@') {
+            priority = atoi(trozos[i] + 1);
+            has_priority = 1;
+            continue;
+        }
+
+        /* detectar & → EN exec NO debería usarse */
+        if (strcmp(trozos[i], "&") == 0) {
+            fprintf(stderr, "exec no permite ejecución en background (&)\n");
+            return 1;
+        }
+
+        /* guardar argumento normal */
+        args[nargs++] = trozos[i];
+    }
+
+    args[nargs] = NULL;  // execvp necesita NULL
+
+    if (nargs == 0) {
+        fprintf(stderr, "exec: no hay ejecutable\n");
+        return 1;
+    }
+
+    /* --- 2. Cambiar prioridad si se pidió --- */
+    if (has_priority) {
+        if (setpriority(PRIO_PROCESS, getpid(), priority) == -1) {
+            perror("setpriority");
+            return 1;
+        }
+    }
+
+    /* --- 3. Ejecutar el programa SIN fork() → reemplaza el shell --- */
+    execvp(args[0], args);
+
+    /* --- 4. Si llega aquí, exec ha fallado --- */
+    fprintf(stderr, "exec: error al ejecutar %s: %s\n", args[0], strerror(errno));
+
+    return 1;
+}
+int jobs(char *trozos[], int ntrozos, Listas L, char *env[]) {
+    (void)trozos;
+    (void)ntrozos;
+    (void)env;
+
+    if (isEmptyList(L->ProcList)) {
+        printf("No background processes.\n");
+        return 1;
+    }
+
+    tPos p = first(L->ProcList);
+    while (p != NULL) {
+        tItemP proc = (tItemP)getItem(L->ProcList, p);
+        int status;
+        pid_t ret = waitpid(proc->pid, &status, WNOHANG | WUNTRACED | WCONTINUED);
+        if (ret > 0) {
+            if (WIFEXITED(status)) {
+                proc->status = FINISHED;
+                *(proc->wstatus) = WEXITSTATUS(status);
+            } else if (WIFSIGNALED(status)) {
+                proc->status = SIGNALED;
+                *(proc->wstatus) = WTERMSIG(status);
+            } else if (WIFSTOPPED(status)) {
+                proc->status = STOPPED;
+                *(proc->wstatus) = WSTOPSIG(status);
+            } else if (WIFCONTINUED(status)) {
+                proc->status = ACTIVE;
+            }
+        }
+
+        char timebuf[64];
+        strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", localtime(&proc->time));
+        int priority = getpriority(PRIO_PROCESS, proc->pid);
+
+        printf("PID: %d | Launched: %s | Status: ", proc->pid, timebuf);
+        switch(proc->status) {
+            case ACTIVE:   printf("ACTIVE"); break;
+            case FINISHED: printf("FINISHED (exit=%d)", *(proc->wstatus)); break;
+            case SIGNALED: printf("SIGNALED (%s)", NombreSenal(*(proc->wstatus))); break;
+            case STOPPED:  printf("STOPPED (%s)", NombreSenal(*(proc->wstatus))); break;
+        }
+        printf(" | Priority: %d | Cmd: %s\n", priority, proc->command);
+
+        p = next(L->ProcList, p);
+    }
+
+    return 1;
+}
+
+int deljobs(char *trozos[], int ntrozos, Listas L, char *env[]) {
+    (void)env;
+
+    if (ntrozos < 2) {
+        printf("Usage: deljobs -term|-sig\n");
+        return 1;
+    }
+
+    char *option = trozos[1];
+    tPos p = first(L->ProcList);
+    while (p != NULL) {
+        tPos nextP = next(L->ProcList, p);
+        tItemP proc = (tItemP)getItem(L->ProcList, p);
+
+        if ((strcmp(option,"-term")==0 && proc->status == FINISHED) ||
+            (strcmp(option,"-sig")==0 && proc->status == SIGNALED)) {
+            RemoveProcElement(&L->ProcList, p);
+            free(proc->wstatus);
+            free(proc->command);
+            free(proc);
+        }
+        p = nextP;
+    }
+
+    return 0;
+}
+
+
+void ejecutarComando(char *trozos[], int ntrozos, Listas L) {
+    int background = 0;
+    int priority = 0;
+    char *args[64];
+    int i, j = 0;
+
+    for (i = 0; i < ntrozos; i++) {
+        if (strcmp(trozos[i], "&") == 0) {
+            background = 1;
+        } else if (trozos[i][0] == '@') {
+            priority = atoi(trozos[i] + 1);
+        } else {
+            args[j++] = trozos[i];
+        }
+    }
+    args[j] = NULL;
+
+    pid_t pid = fork();
+    if (pid == 0) { // hijo
+        if (priority != 0)
+            setpriority(PRIO_PROCESS, 0, priority);
+        execvp(args[0], args);
+        perror("execvp failed");
+        _exit(1);
+    } else if (pid > 0) { // padre
+        if (background) {
+            tItemP newProc = malloc(sizeof(struct structProc));
+            newProc->pid = pid;
+            newProc->time = time(NULL);
+            newProc->status = ACTIVE;
+            newProc->command = strdup(trozos[0]); // puedes concatenar args si quieres toda la línea
+            newProc->wstatus = malloc(sizeof(int));
+            *newProc->wstatus = 0;
+            InsertItem(&L->ProcList, newProc, last(L->ProcList));
+            printf("Process %d running in background\n", pid);
+        } else {
+            waitpid(pid, NULL, 0); // espera al hijo
+        }
+    } else {
+        perror("fork failed");
+    }
+}

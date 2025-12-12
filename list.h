@@ -24,6 +24,8 @@
 #define LNULL NULL
 
 enum tAllocL { MALLOC, SHARED, MAPPED };
+enum tStatusL { FINISHED, STOPPED, SIGNALED, ACTIVE };
+
 typedef char tFNameL[1024];
 
 
@@ -49,7 +51,7 @@ struct structOpenFile {
 struct structProc {
     pid_t pid; // PID
     time_t time; // Fecha de lanzamiento
-    //enum tStatusL status; // Estado
+    enum tStatusL status; // Estado
     int *wstatus; // WStatus
     char * command; // Command Line
 };
@@ -86,11 +88,24 @@ void RemoveElement(tList *l1,tPos p);
 bool isEmptyList(tList l1);
 tPos previous(tList l1,tPos p);
 tPos next(tList l1,tPos p);
-void RemoveOpenFileElement(tList *l, tPos p);
-void DeleteOpenFilesList(tList *l);
-void RemoveHistoricElement(tList *l, tPos p);
+
+void RemoveElement(tList *l1, tPos p);
+
+void RemoveProcElement(tList *l, tPos p);
+
+void deleteList(tList *l1,char type) ;
+// RemoveElement y deleteList para HistoricList
+// ================================================
+void RemoveHistoricElement(tList *l, tPos p) ;
 void DeleteHistoricList(tList *l);
-void RemoveMemElement(tList *l, tPos p);
+void DeleteProcList(tList *l) ;
+// ================================================
+// RemoveElement y deleteList para OpenFilesList
+// ================================================
+void RemoveOpenFileElement(tList *l, tPos p);
+void DeleteOpenFilesList(tList *l) ;
+
+void RemoveMemElement(tList *l, tPos p) ;
 
 #endif //LIST_H
 
