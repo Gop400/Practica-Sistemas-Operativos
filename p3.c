@@ -131,8 +131,9 @@ int Cmd_showenv(char *trozos[],int ntrozos, Listas L, char *env[]) {
 
         } 
         if (strcmp(trozos[0], "-addr")==0){
-            printf("Direcciones de env[]: %p\n", (void*)env);
-            printf("Direcciones de environ: %p\n", (void*)environ);
+            printf("environ:   %p (almacenado en %p)\n", (void*)environ, (void*)&environ);
+            printf("main arg3: %p (almacenado en %p)\n", (void*)env, (void*)&env);
+            
             Aux_processos_show(env, "main arg3");     // muestra punteros y valores
             Aux_processos_show(environ, "environ");   // idem
             return 0;
@@ -142,25 +143,30 @@ int Cmd_showenv(char *trozos[],int ntrozos, Listas L, char *env[]) {
     fprintf(stderr, "Uso: showenv [-environ|-addr]\n");
     return 1;
 }
+int Cmd_fork(char *trozos[], int ntrozos, Listas L, char *env[]) {
+    pid_t pid = fork();
 
-int Cmd_fork (char *trozos[], int ntrozos, Listas L, char *env[])
-{
-	pid_t pid;
-    pid=fork();
-    if(pid== -1){
+    if (pid == -1) { // error
         perror("Error en fork");
         return 1;
     }
-	if (pid==0){
-		printf ("ejecutando proceso %d\n", getpid());
+
+    if (pid == 0) { // hijo
+        // Limpiamos la lista de procesos locales del hijo (opcional)
+        DeleteProcList(&L->ProcList);
+        printf("Ejecutando proceso %d\n", getpid());
         exit(0);
-	}
-    if(waitpid (pid,NULL,0)==-1){
-        perror ("Error en waitpid");
+    }
+
+    // padre espera al hijo
+    if (waitpid(pid, NULL, 0) == -1) {
+        perror("Error en waitpid");
         return 1;
     }
+
     return 0;
 }
+
 int Cmd_exec(char *trozos[], int ntrozos, Listas L, char *env[])
 {
     int i, priority = -99999; 
