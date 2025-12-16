@@ -52,7 +52,7 @@ struct structProc {
     pid_t pid; // PID
     time_t time; // Fecha de lanzamiento
     enum tStatusL status; // Estado
-    int *wstatus; // WStatus
+    int wstatus; // WStatus
     char * command; // Command Line
 };
 typedef void* tItem;

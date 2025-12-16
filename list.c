@@ -111,7 +111,6 @@ void RemoveProcElement(tList *l, tPos p) {
     tItemP item = (tItemP)getItem(*l, p);
     if (item != NULL) {
         if (item->command) free(item->command);   // liberar cadena
-        if (item->wstatus) free(item->wstatus);   // liberar wstatus
         free(item);                               // liberar estructura
     }
     RemoveElement(l, p);

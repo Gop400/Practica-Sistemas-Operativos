@@ -6,7 +6,7 @@
 
 int externia, externia2, externia3;
 int externa=1,externb=2, externc=3;
-struct cmd cmds[]={{"jobs", jobs},{"deljobs", deljobs},{"exec",Cmd_exec},{"fork",Cmd_fork},{"showenv",Cmd_showenv},{"envvar",Cmd_envvar},{"uid",Cmd_uid},{NULL,NULL}};
+struct cmd cmds[]={{"deljobs", deljobs},{"jobs", jobs},{"exec",Cmd_exec},{"fork",Cmd_fork},{"showenv",Cmd_showenv},{"envvar",Cmd_envvar},{"uid",Cmd_uid},{NULL,NULL}};
 
 int TrocearCadena(char * cadena, char * trozos[])
 { int i=1;
@@ -745,6 +745,7 @@ char *NombreSenal(int sen)  /*devuelve el nombre senal a partir de la senal*/
 		return sigstrnum[i].nombre;
  return ("SIGUNKNOWN");
 }
+
 void Aux_processos_show(char **env, char *nombre_entorno) {
     int i = 0;
 

@@ -20,11 +20,14 @@ int main(int argc, char *argv[], char *env[]) {
     tList h;
     tList f;
     tList m;
+    tList p;
 
     L=malloc(sizeof(struct structListas));
     CreateEmptyList(&h);
     CreateEmptyList(&f);
     CreateEmptyList(&m);
+    CreateEmptyList(&p);
+    L->ProcList=p;
     L->OpenFilesList=f;
     L->HistoricList=h;
     L->MemList=m;
@@ -46,6 +49,7 @@ int main(int argc, char *argv[], char *env[]) {
     deleteList(&L->HistoricList,'H');
     deleteList(&L->OpenFilesList,'O');
     deleteList(&L->MemList,'M');
+    deleteList(&L->ProcList,'P');
     free(L);
     return 0;
 }

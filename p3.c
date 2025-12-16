@@ -217,9 +217,10 @@ int Cmd_exec(char *trozos[], int ntrozos, Listas L, char *env[])
     return 1;
 }
 int jobs(char *trozos[], int ntrozos, Listas L, char *env[]) {
-    (void)trozos;
-    (void)ntrozos;
-    (void)env;
+    if(ntrozos > 1) {
+        printf("Usage: jobs\n");
+        return 1;
+    }
 
     if (isEmptyList(L->ProcList)) {
         printf("No background processes.\n");
@@ -234,28 +235,31 @@ int jobs(char *trozos[], int ntrozos, Listas L, char *env[]) {
         if (ret > 0) {
             if (WIFEXITED(status)) {
                 proc->status = FINISHED;
-                *(proc->wstatus) = WEXITSTATUS(status);
+                proc->wstatus = WEXITSTATUS(status);
             } else if (WIFSIGNALED(status)) {
                 proc->status = SIGNALED;
-                *(proc->wstatus) = WTERMSIG(status);
+                proc->wstatus = WTERMSIG(status);
             } else if (WIFSTOPPED(status)) {
                 proc->status = STOPPED;
-                *(proc->wstatus) = WSTOPSIG(status);
+                proc->wstatus = WSTOPSIG(status);
             } else if (WIFCONTINUED(status)) {
-                proc->status = ACTIVE;
+                if(proc->status == STOPPED) {
+                    proc->status = ACTIVE;
+                }
+                    // remains ACTIVE
             }
         }
 
         char timebuf[64];
         strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", localtime(&proc->time));
-        int priority = getpriority(PRIO_PROCESS, proc->pid);
+        int priority = (proc->status == ACTIVE) ? getpriority(PRIO_PROCESS, proc->pid) : -1;
 
         printf("PID: %d | Launched: %s | Status: ", proc->pid, timebuf);
         switch(proc->status) {
             case ACTIVE:   printf("ACTIVE"); break;
-            case FINISHED: printf("FINISHED (exit=%d)", *(proc->wstatus)); break;
-            case SIGNALED: printf("SIGNALED (%s)", NombreSenal(*(proc->wstatus))); break;
-            case STOPPED:  printf("STOPPED (%s)", NombreSenal(*(proc->wstatus))); break;
+            case FINISHED: printf("FINISHED (exit=%d)", proc->wstatus); break;
+            case SIGNALED: printf("SIGNALED (%s)", NombreSenal(proc->wstatus)); break;
+            case STOPPED:  printf("STOPPED (%s)", NombreSenal(proc->wstatus))  ; break;
         }
         printf(" | Priority: %d | Cmd: %s\n", priority, proc->command);
 
@@ -264,39 +268,45 @@ int jobs(char *trozos[], int ntrozos, Listas L, char *env[]) {
 
     return 1;
 }
-
 int deljobs(char *trozos[], int ntrozos, Listas L, char *env[]) {
-    (void)env;
-
-    if (ntrozos < 2) {
+    int eliminarTerm = 0;
+    int eliminarSig = 0;
+    if (ntrozos != 2) {
         printf("Usage: deljobs -term|-sig\n");
         return 1;
     }
-
-    char *option = trozos[1];
+    if (strcmp(trozos[0], "-term") == 0) eliminarTerm = 1;
+    else if (strcmp(trozos[0], "-sig") == 0) eliminarSig = 1;
+    else {
+        printf("Usage: deljobs -term|-sig\n");
+        return 1;
+    }
+    if(isEmptyList(L->ProcList)) {
+        printf("No background processes to delete.\n");
+        return 1;
+    }
     tPos p = first(L->ProcList);
     while (p != NULL) {
-        tPos nextP = next(L->ProcList, p);
         tItemP proc = (tItemP)getItem(L->ProcList, p);
-
-        if ((strcmp(option,"-term")==0 && proc->status == FINISHED) ||
-            (strcmp(option,"-sig")==0 && proc->status == SIGNALED)) {
+        tPos nextPos = next(L->ProcList, p); // Guardar la siguiente posición
+        if ((eliminarTerm && proc->status == FINISHED) ||
+            (eliminarSig && proc->status == SIGNALED)) {
+            printf("Removing process PID: %d, Cmd: %s\n", proc->pid, proc->command);
             RemoveProcElement(&L->ProcList, p);
-            free(proc->wstatus);
-            free(proc->command);
-            free(proc);
         }
-        p = nextP;
+        p = nextPos;
     }
-
     return 0;
+
 }
+
+
 
 
 void ejecutarComando(char *trozos[], int ntrozos, Listas L) {
     int background = 0;
-    int priority = 0;
-    char *args[64];
+    int priority = -1;
+    char *args[ntrozos +1];
     int i, j = 0;
 
     for (i = 0; i < ntrozos; i++) {
@@ -312,24 +322,41 @@ void ejecutarComando(char *trozos[], int ntrozos, Listas L) {
 
     pid_t pid = fork();
     if (pid == 0) { // hijo
-        if (priority != 0)
-            setpriority(PRIO_PROCESS, 0, priority);
+        if (priority >= 0)
+            if(setpriority(PRIO_PROCESS, 0, priority) == -1) {
+                perror("setpriority failed");
+            }
         execvp(args[0], args);
         perror("execvp failed");
-        _exit(1);
+        exit(1);
     } else if (pid > 0) { // padre
         if (background) {
+            size_t len = 0;
+            for (int i = 0; i < ntrozos; i++) {
+                if (strcmp(trozos[i], "&") != 0 && trozos[i][0] != '@')
+                    len += strlen(trozos[i]) + 1;
+            }
             tItemP newProc = malloc(sizeof(struct structProc));
             newProc->pid = pid;
             newProc->time = time(NULL);
             newProc->status = ACTIVE;
-            newProc->command = strdup(trozos[0]); // puedes concatenar args si quieres toda la línea
-            newProc->wstatus = malloc(sizeof(int));
-            *newProc->wstatus = 0;
-            InsertItem(&L->ProcList, newProc, last(L->ProcList));
+            newProc->command = malloc(len + 1);
+            newProc->command[0] = '\0';
+            newProc->wstatus = 0;
+            for (int i = 0; i < ntrozos; i++) {
+                if (strcmp(trozos[i], "&") != 0 && trozos[i][0] != '@') {
+                    strcat(newProc->command, trozos[i]);
+                    if (i < ntrozos - 1) {
+                        strcat(newProc->command, " ");
+                    }
+                }
+            }
+            
+            InsertItem(&L->ProcList, newProc, NULL);
             printf("Process %d running in background\n", pid);
         } else {
-            waitpid(pid, NULL, 0); // espera al hijo
+            int status;
+            waitpid(pid, &status, 0); // espera al hijo
         }
     } else {
         perror("fork failed");
